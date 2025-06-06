@@ -1,3 +1,4 @@
+// src/components/Dashboard.js - Updated with links to startup detail pages
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -123,14 +124,17 @@ const Dashboard = () => {
             <div className="space-y-4">
               {featuredStartups.length > 0 ? (
                 featuredStartups.map((startup) => (
-                  <div
+                  <Link
                     key={startup.id}
-                    className="border-l-4 border-blue-500 bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+                    to={`/startups/${startup.id}`}
+                    className="block border-l-4 border-blue-500 bg-gray-50 rounded-lg p-4 hover:bg-blue-50 transition-colors group"
                   >
                     <div className="flex items-center space-x-3">
                       <div className="text-2xl">{startup.logo}</div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{startup.name}</h3>
+                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {startup.name}
+                        </h3>
                         <p className="text-sm text-gray-600">{startup.industry_name}</p>
                         <div className="flex items-center space-x-2 mt-1">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -139,10 +143,21 @@ const Dashboard = () => {
                           <span className="text-xs text-gray-500">
                             {startup.employee_count} employees
                           </span>
+                          <div className="flex items-center space-x-1">
+                            <span className="text-yellow-400 text-xs">⭐</span>
+                            <span className="text-xs text-gray-500">
+                              {startup.average_rating?.toFixed(1) || 'N/A'}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-gray-500 text-center py-8">No featured startups found.</p>
@@ -172,7 +187,12 @@ const Dashboard = () => {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                        <p className="text-sm text-gray-600">{job.startup_name}</p>
+                        <Link 
+                          to={`/startups/${job.startup}`}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          {job.startup_name}
+                        </Link>
                         <div className="flex items-center space-x-2 mt-2">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             {job.job_type_name}
@@ -209,10 +229,10 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               to="/startups"
-              className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
             >
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                   <span className="text-white font-semibold">🚀</span>
                 </div>
               </div>
@@ -224,38 +244,11 @@ const Dashboard = () => {
             
             <Link
               to="/jobs"
-              className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+              className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
             >
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                   <span className="text-white font-semibold">💼</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-900">Find Jobs</p>
-                <p className="text-sm text-gray-500">Browse open positions</p>
-              </div>
-            </Link>
-            
-            <Link
-              to="/profile"
-              className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-            >
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-semibold">👤</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-900">Update Profile</p>
-                <p className="text-sm text-gray-500">Manage your account</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Dashboard;
