@@ -1,4 +1,5 @@
-// src/components/Dashboard.js - Updated with links to startup detail pages
+// src/components/Dashboard.js - Fixed JSX syntax error
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -237,6 +238,21 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="ml-4">
+                <p className="text-sm font-medium text-gray-900">Explore Startups</p>
+                <p className="text-sm text-gray-500">Discover innovative companies</p>
+              </div>
+            </Link>
+            
+            <Link
+              to="/jobs"
+              className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="text-white font-semibold">💼</span>
+                </div>
+              </div>
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-900">Find Jobs</p>
                 <p className="text-sm text-gray-500">Browse open positions</p>
               </div>
@@ -263,18 +279,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;<p className="text-sm font-medium text-gray-900">Explore Startups</p>
-                <p className="text-sm text-gray-500">Discover innovative companies</p>
-              </div>
-            </Link>
-            
-            <Link
-              to="/jobs"
-              className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
-            >
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <span className="text-white font-semibold">💼</span>
-                </div>
-              </div>
-              <div className="ml-4">
+export default Dashboard;
