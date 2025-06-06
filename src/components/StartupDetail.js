@@ -1,13 +1,9 @@
-// src/components/StartupDetail.js
+// First, create src/components/StartupDetail.js with the correct import case-sensitivity
+
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import { 
-  MapPin, Users, DollarSign, Calendar, Globe, Star, Heart, Bookmark, 
-  MessageCircle, TrendingUp, Award, Briefcase, ArrowLeft, ExternalLink,
-  Building, Target, BarChart3, Eye, ChevronRight
-} from 'lucide-react';
 
 const StartupDetail = () => {
   const { id } = useParams();
@@ -148,7 +144,7 @@ const StartupDetail = () => {
               interactive ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-default'
             } ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
           >
-            <Star fill="currentColor" />
+            ⭐
           </button>
         ))}
       </div>
@@ -183,11 +179,11 @@ const StartupDetail = () => {
   }
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: Building },
-    { id: 'jobs', label: `Jobs (${startup.open_jobs?.length || 0})`, icon: Briefcase },
-    { id: 'team', label: `Team (${startup.founders?.length || 0})`, icon: Users },
-    { id: 'metrics', label: 'Metrics', icon: BarChart3 },
-    { id: 'reviews', label: `Reviews (${startup.total_ratings})`, icon: Star },
+    { id: 'overview', label: 'Overview', icon: '🏢' },
+    { id: 'jobs', label: `Jobs (${startup.open_jobs?.length || 0})`, icon: '💼' },
+    { id: 'team', label: `Team (${startup.founders?.length || 0})`, icon: '👥' },
+    { id: 'metrics', label: 'Metrics', icon: '📊' },
+    { id: 'reviews', label: `Reviews (${startup.total_ratings})`, icon: '⭐' },
   ];
 
   return (
@@ -200,8 +196,7 @@ const StartupDetail = () => {
               onClick={() => navigate(-1)}
               className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
+              ← Back
             </button>
             
             <div className="flex items-center space-x-3">
@@ -213,8 +208,7 @@ const StartupDetail = () => {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <Bookmark className={`w-4 h-4 mr-2 ${startup.is_bookmarked ? 'fill-current' : ''}`} />
-                {startup.is_bookmarked ? 'Bookmarked' : 'Bookmark'}
+                🔖 {startup.is_bookmarked ? 'Bookmarked' : 'Bookmark'}
               </button>
               
               <button
@@ -225,8 +219,7 @@ const StartupDetail = () => {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <Heart className={`w-4 h-4 mr-2 ${startup.is_liked ? 'fill-current' : ''}`} />
-                {startup.total_likes}
+                ❤️ {startup.total_likes}
               </button>
             </div>
           </div>
@@ -244,8 +237,7 @@ const StartupDetail = () => {
                   <h1 className="text-3xl font-bold text-gray-900">{startup.name}</h1>
                   {startup.is_featured && (
                     <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
-                      <Award className="w-4 h-4 inline mr-1" />
-                      Featured
+                      🏆 Featured
                     </span>
                   )}
                 </div>
@@ -255,12 +247,10 @@ const StartupDetail = () => {
                     {startup.industry_detail?.icon} {startup.industry_name}
                   </span>
                   <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    {startup.location}
+                    📍 {startup.location}
                   </div>
                   <div className="flex items-center text-gray-600">
-                    <Eye className="w-4 h-4 mr-1" />
-                    {startup.views.toLocaleString()} views
+                    👁️ {startup.views.toLocaleString()} views
                   </div>
                 </div>
 
@@ -297,9 +287,9 @@ const StartupDetail = () => {
               <div className="bg-gray-50 rounded-xl p-6 text-center">
                 <div className="mb-4">
                   <div className="text-3xl font-bold text-gray-900 mb-1">
-                    {startup.average_rating.toFixed(1)}
+                    {startup.average_rating?.toFixed(1) || 'N/A'}
                   </div>
-                  <StarRating rating={Math.round(startup.average_rating)} />
+                  <StarRating rating={Math.round(startup.average_rating || 0)} />
                   <div className="text-sm text-gray-600 mt-1">
                     {startup.total_ratings} reviews
                   </div>
@@ -324,9 +314,7 @@ const StartupDetail = () => {
                     rel="noopener noreferrer"
                     className="mt-4 w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    <Globe className="w-4 h-4 mr-2" />
-                    Visit Website
-                    <ExternalLink className="w-4 h-4 ml-2" />
+                    🌐 Visit Website →
                   </a>
                 )}
               </div>
@@ -338,23 +326,19 @@ const StartupDetail = () => {
         <div className="bg-white rounded-xl shadow-sm mb-8">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {tab.label}
-                  </button>
-                );
-              })}
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
             </nav>
           </div>
 
@@ -362,7 +346,6 @@ const StartupDetail = () => {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-8">
-                {/* Additional Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Details</h3>
@@ -402,106 +385,29 @@ const StartupDetail = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Similar Startups */}
-                {startup.similar_startups?.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Similar Startups</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {startup.similar_startups.map((similar) => (
-                        <Link
-                          key={similar.id}
-                          to={`/startups/${similar.id}`}
-                          className="block p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="text-2xl">{similar.logo}</div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{similar.name}</h4>
-                              <p className="text-sm text-gray-600">{similar.industry_name}</p>
-                              <div className="flex items-center space-x-2 mt-1">
-                                <span className="text-xs text-gray-500">{similar.location}</span>
-                                <StarRating rating={Math.round(similar.average_rating)} size="w-3 h-3" />
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
             {/* Jobs Tab */}
             {activeTab === 'jobs' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Open Positions</h3>
-                  <Link
-                    to={`/jobs?startup=${startup.id}`}
-                    className="text-blue-600 hover:text-blue-700 font-medium flex items-center"
-                  >
-                    View All Jobs
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Link>
-                </div>
-
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">Open Positions</h3>
                 {startup.open_jobs?.length > 0 ? (
                   <div className="space-y-4">
                     {startup.open_jobs.map((job) => (
-                      <div key={job.id} className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h4>
-                            <p className="text-gray-600 mb-4">{job.description}</p>
-                            
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                              <div className="flex items-center">
-                                <MapPin className="w-4 h-4 mr-1" />
-                                {job.location}
-                              </div>
-                              <div className="flex items-center">
-                                <DollarSign className="w-4 h-4 mr-1" />
-                                {job.salary_range}
-                              </div>
-                              <div className="flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                {job.posted_ago}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                                {job.job_type_name}
-                              </span>
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                {job.experience_level_display}
-                              </span>
-                              {job.is_remote && (
-                                <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                                  Remote
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <Link
-                            to={`/jobs/${job.id}`}
-                            className="ml-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            View Job
-                          </Link>
+                      <div key={job.id} className="border border-gray-200 rounded-lg p-6">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h4>
+                        <p className="text-gray-600 mb-4">{job.description}</p>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span>📍 {job.location}</span>
+                          <span>💰 {job.salary_range}</span>
+                          <span>⏰ {job.posted_ago}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">No Open Positions</h4>
-                    <p className="text-gray-600">This startup doesn't have any open positions at the moment.</p>
-                  </div>
+                  <p className="text-gray-500 text-center py-8">No open positions available.</p>
                 )}
               </div>
             )}
@@ -510,32 +416,18 @@ const StartupDetail = () => {
             {activeTab === 'team' && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Meet the Team</h3>
-                
                 {startup.founders?.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {startup.founders.map((founder) => (
                       <div key={founder.id} className="bg-gray-50 rounded-xl p-6">
-                        <div className="flex items-start space-x-4">
-                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-2xl">👤</span>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-lg font-semibold text-gray-900">{founder.name}</h4>
-                            <p className="text-blue-600 font-medium mb-2">{founder.title}</p>
-                            {founder.bio && (
-                              <p className="text-gray-600">{founder.bio}</p>
-                            )}
-                          </div>
-                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900">{founder.name}</h4>
+                        <p className="text-blue-600 font-medium mb-2">{founder.title}</p>
+                        {founder.bio && <p className="text-gray-600">{founder.bio}</p>}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">No Team Information</h4>
-                    <p className="text-gray-600">Team information is not available for this startup.</p>
-                  </div>
+                  <p className="text-gray-500 text-center py-8">No team information available.</p>
                 )}
               </div>
             )}
@@ -544,18 +436,17 @@ const StartupDetail = () => {
             {activeTab === 'metrics' && (
               <div className="space-y-8">
                 <h3 className="text-lg font-semibold text-gray-900">Engagement Metrics</h3>
-                
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="bg-blue-50 rounded-xl p-6 text-center">
-                    <div className="text-2xl font-bold text-blue-600">{startup.total_likes}</div>
+                    <div className="text-2xl font-bold text-blue-600">{startup.total_likes || 0}</div>
                     <div className="text-sm text-gray-600">Likes</div>
                   </div>
                   <div className="bg-green-50 rounded-xl p-6 text-center">
-                    <div className="text-2xl font-bold text-green-600">{startup.total_bookmarks}</div>
+                    <div className="text-2xl font-bold text-green-600">{startup.total_bookmarks || 0}</div>
                     <div className="text-sm text-gray-600">Bookmarks</div>
                   </div>
                   <div className="bg-purple-50 rounded-xl p-6 text-center">
-                    <div className="text-2xl font-bold text-purple-600">{startup.total_comments}</div>
+                    <div className="text-2xl font-bold text-purple-600">{startup.total_comments || 0}</div>
                     <div className="text-sm text-gray-600">Comments</div>
                   </div>
                   <div className="bg-yellow-50 rounded-xl p-6 text-center">
@@ -563,42 +454,13 @@ const StartupDetail = () => {
                     <div className="text-sm text-gray-600">Views</div>
                   </div>
                 </div>
-
-                {startup.engagement_metrics && (
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">30-Day Activity</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-gray-900">{startup.engagement_metrics.recent_ratings}</div>
-                        <div className="text-xs text-gray-600">New Ratings</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-gray-900">{startup.engagement_metrics.recent_comments}</div>
-                        <div className="text-xs text-gray-600">New Comments</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-gray-900">{startup.engagement_metrics.recent_likes}</div>
-                        <div className="text-xs text-gray-600">New Likes</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-gray-900">{startup.engagement_metrics.recent_bookmarks}</div>
-                        <div className="text-xs text-gray-600">New Bookmarks</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
             {/* Reviews Tab */}
             {activeTab === 'reviews' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Reviews & Comments</h3>
-                  <div className="text-sm text-gray-600">
-                    {startup.total_ratings} reviews • {startup.total_comments} comments
-                  </div>
-                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Reviews & Comments</h3>
 
                 {/* Add Comment Form */}
                 {isAuthenticated && (
@@ -617,7 +479,7 @@ const StartupDetail = () => {
                       <button
                         type="submit"
                         disabled={!comment.trim() || submittingComment}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                       >
                         {submittingComment ? 'Posting...' : 'Post Comment'}
                       </button>
@@ -625,64 +487,31 @@ const StartupDetail = () => {
                   </form>
                 )}
 
-                {/* Recent Comments */}
+                {/* Comments */}
                 <div className="space-y-4">
                   {startup.recent_comments?.length > 0 ? (
                     startup.recent_comments.map((comment) => (
                       <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-6">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium">
-                                {comment.user_first_name?.charAt(0) || comment.user_name?.charAt(0) || '?'}
-                              </span>
+                        <div className="flex items-center space-x-3 mb-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium">
+                              {comment.user_first_name?.charAt(0) || comment.user_name?.charAt(0) || '?'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {comment.user_first_name || comment.user_name}
                             </div>
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {comment.user_first_name || comment.user_name}
-                              </div>
-                              <div className="text-sm text-gray-500">{comment.time_ago}</div>
-                            </div>
+                            <div className="text-sm text-gray-500">{comment.time_ago}</div>
                           </div>
                         </div>
                         <p className="text-gray-700">{comment.text}</p>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-12">
-                      <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">No Comments Yet</h4>
-                      <p className="text-gray-600">Be the first to share your thoughts about this startup!</p>
-                    </div>
+                    <p className="text-gray-500 text-center py-8">No comments yet. Be the first to share your thoughts!</p>
                   )}
                 </div>
-
-                {/* Recent Ratings */}
-                {startup.recent_ratings?.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-4">Recent Ratings</h4>
-                    <div className="space-y-3">
-                      {startup.recent_ratings.map((rating) => (
-                        <div key={rating.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium">
-                                {rating.user_first_name?.charAt(0) || rating.user_name?.charAt(0) || '?'}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {rating.user_first_name || rating.user_name}
-                              </div>
-                              <div className="text-sm text-gray-500">{rating.time_ago}</div>
-                            </div>
-                          </div>
-                          <StarRating rating={rating.rating} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
