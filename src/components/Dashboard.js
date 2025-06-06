@@ -237,7 +237,33 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-900">Explore Startups</p>
+                <p className="text-sm font-medium text-gray-900">Find Jobs</p>
+                <p className="text-sm text-gray-500">Browse open positions</p>
+              </div>
+            </Link>
+            
+            <Link
+              to="/profile"
+              className="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="text-white font-semibold">👤</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-900">Update Profile</p>
+                <p className="text-sm text-gray-500">Manage your account</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;<p className="text-sm font-medium text-gray-900">Explore Startups</p>
                 <p className="text-sm text-gray-500">Discover innovative companies</p>
               </div>
             </Link>
