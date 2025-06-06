@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import Home from './components/Home'; // Import the new Home component
 import Startups from './components/Startups';
 import Jobs from './components/Jobs';
 import Profile from './components/Profile';
@@ -42,10 +43,16 @@ const AppRoutes = () => {
       <div className="App">
         {isAuthenticated && <Navbar />}
         <Routes>
+          {/* Public route for the new landing page */}
+          <Route path="/welcome" element={<Home />} />
+          
+          {/* Auth route - redirects to dashboard if already authenticated */}
           <Route 
             path="/auth" 
             element={isAuthenticated ? <Navigate to="/" /> : <Auth />} 
           />
+          
+          {/* Protected routes - require authentication */}
           <Route 
             path="/" 
             element={
@@ -78,7 +85,14 @@ const AppRoutes = () => {
               </ProtectedRoute>
             } 
           />
-          <Route path="*" element={<Navigate to="/" />} />
+          
+          {/* Catch-all redirect to dashboard if authenticated, otherwise to welcome page */}
+          <Route 
+            path="*" 
+            element={
+              isAuthenticated ? <Navigate to="/" /> : <Navigate to="/welcome" />
+            } 
+          />
         </Routes>
       </div>
     </Router>
