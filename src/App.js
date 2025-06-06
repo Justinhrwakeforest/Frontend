@@ -1,10 +1,12 @@
+// src/App.js - Updated with startup detail route
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
-import Home from './components/Home'; // Import the new Home component
+import Home from './components/Home';
 import Startups from './components/Startups';
+import StartupDetail from './components/StartupDetail'; // New import
 import Jobs from './components/Jobs';
 import Profile from './components/Profile';
 import Navbar from './components/Navbar';
@@ -43,7 +45,7 @@ const AppRoutes = () => {
       <div className="App">
         {isAuthenticated && <Navbar />}
         <Routes>
-          {/* Public route for the new landing page */}
+          {/* Public route for the landing page */}
           <Route path="/welcome" element={<Home />} />
           
           {/* Auth route - redirects to dashboard if already authenticated */}
@@ -69,6 +71,15 @@ const AppRoutes = () => {
               </ProtectedRoute>
             } 
           />
+          {/* New startup detail route */}
+          <Route 
+            path="/startups/:id" 
+            element={
+              <ProtectedRoute>
+                <StartupDetail />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/jobs" 
             element={
@@ -86,7 +97,7 @@ const AppRoutes = () => {
             } 
           />
           
-          {/* Catch-all redirect to dashboard if authenticated, otherwise to welcome page */}
+          {/* Catch-all redirect */}
           <Route 
             path="*" 
             element={
