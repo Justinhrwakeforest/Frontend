@@ -1,4 +1,6 @@
+// src/components/Startups.js - Updated startup cards with links to detail pages
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import SearchBar from './SearchBar';
 import FilterChips from './FilterChips';
@@ -283,70 +285,88 @@ const Startups = () => {
           )}
         </div>
 
-        {/* Results Grid */}
+        {/* Results Grid - Updated with clickable cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {startups.map((startup) => (
-            <div key={startup.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-gray-200">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="text-3xl">{startup.logo}</div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{startup.name}</h3>
-                    {startup.is_featured && (
-                      <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                        Featured
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600">{startup.industry_name}</p>
-                </div>
-              </div>
-              
-              <p className="text-gray-700 text-sm mb-4 line-clamp-3">{startup.description}</p>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      📍 {startup.location}
-                    </span>
-                    <span className="text-xs text-gray-500">{startup.employee_count} employees</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-yellow-400">⭐</span>
-                    <span className="text-sm text-gray-600">{startup.average_rating.toFixed(1)}</span>
-                    <span className="text-xs text-gray-500">({startup.total_ratings})</span>
+            <Link
+              key={startup.id}
+              to={`/startups/${startup.id}`}
+              className="block bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-blue-300 transform hover:-translate-y-1"
+            >
+              <div className="p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="text-3xl">{startup.logo}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                        {startup.name}
+                      </h3>
+                      {startup.is_featured && (
+                        <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{startup.industry_name}</p>
                   </div>
                 </div>
-
-                {startup.has_funding && (
-                  <div className="flex items-center space-x-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      💰 {startup.funding_amount}
-                    </span>
-                    {startup.valuation && (
-                      <span className="text-xs text-gray-500">Valued at {startup.valuation}</span>
-                    )}
-                  </div>
-                )}
-
-                {startup.tags_list && startup.tags_list.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {startup.tags_list.slice(0, 3).map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800"
-                      >
-                        {tag}
+                
+                <p className="text-gray-700 text-sm mb-4 line-clamp-3">{startup.description}</p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        📍 {startup.location}
                       </span>
-                    ))}
-                    {startup.tags_list.length > 3 && (
-                      <span className="text-xs text-gray-500">+{startup.tags_list.length - 3} more</span>
-                    )}
+                      <span className="text-xs text-gray-500">{startup.employee_count} employees</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-yellow-400">⭐</span>
+                      <span className="text-sm text-gray-600">{startup.average_rating.toFixed(1)}</span>
+                      <span className="text-xs text-gray-500">({startup.total_ratings})</span>
+                    </div>
                   </div>
-                )}
+
+                  {startup.funding_amount && (
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        💰 {startup.funding_amount}
+                      </span>
+                      {startup.valuation && (
+                        <span className="text-xs text-gray-500">Valued at {startup.valuation}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {startup.tags_list && startup.tags_list.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {startup.tags_list.slice(0, 3).map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {startup.tags_list.length > 3 && (
+                        <span className="text-xs text-gray-500">+{startup.tags_list.length - 3} more</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* View Details Indicator */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">👁️ {startup.views} views</span>
+                      <span className="text-blue-600 font-medium hover:text-blue-700">
+                        View Details →
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
