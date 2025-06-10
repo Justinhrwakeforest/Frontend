@@ -1,11 +1,14 @@
+// src/components/Home.js - Fixed welcome page with proper navigation
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Search, ChevronDown, ChevronRight, Filter, MapPin, 
   Briefcase, Building, Users, Rocket, Zap, Award, 
   DollarSign, TrendingUp, ArrowRight, Star, Calendar
 } from "lucide-react";
 
-export default function EnhancedHome() {
+export default function Home() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     total_startups: 0,
     total_jobs: 0,
@@ -190,7 +193,28 @@ export default function EnhancedHome() {
       return;
     }
     
-    alert(`Searching for "${searchTerm}" in category: ${searchCategory}`);
+    // Navigate to authenticated startups page with search
+    navigate('/auth', { state: { redirectTo: '/startups', searchTerm } });
+  };
+
+  const handleExploreStartups = () => {
+    navigate('/auth', { state: { redirectTo: '/startups' } });
+  };
+
+  const handleBrowseJobs = () => {
+    navigate('/auth', { state: { redirectTo: '/jobs' } });
+  };
+
+  const handleGetStarted = () => {
+    navigate('/auth', { state: { showSignUp: true } });
+  };
+
+  const handleSignUp = () => {
+    navigate('/auth', { state: { showSignUp: true } });
+  };
+
+  const handleLogin = () => {
+    navigate('/auth', { state: { showSignUp: false } });
   };
   
   const toggleFilters = () => {
@@ -234,39 +258,73 @@ export default function EnhancedHome() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar with scroll effect */}
-      <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-transparent py-5'}`}>
+      {/* Welcome Page Navbar - Different from authenticated navbar */}
+      <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-white shadow-md py-3' : 'bg-white bg-opacity-10 backdrop-blur-sm py-5'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">S</span>
               </div>
-              <span className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className={`ml-3 text-xl font-bold transition-colors ${
+                isScrolled 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent' 
+                  : 'text-white'
+              }`}>
                 StartupHub
               </span>
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
-              <button className="text-gray-600 hover:text-blue-600 transition-colors">
+              <button 
+                onClick={handleExploreStartups}
+                className={`transition-colors ${
+                  isScrolled ? 'text-gray-600 hover:text-blue-600' : 'text-white hover:text-blue-200'
+                }`}
+              >
                 Startups
               </button>
-              <button className="text-gray-600 hover:text-blue-600 transition-colors">
+              <button 
+                onClick={handleBrowseJobs}
+                className={`transition-colors ${
+                  isScrolled ? 'text-gray-600 hover:text-blue-600' : 'text-white hover:text-blue-200'
+                }`}
+              >
                 Jobs
               </button>
-              <button className="text-gray-600 hover:text-blue-600 transition-colors">
+              <button className={`transition-colors ${
+                isScrolled ? 'text-gray-600 hover:text-blue-600' : 'text-white hover:text-blue-200'
+              }`}>
                 Events
               </button>
-              <button className="text-gray-600 hover:text-blue-600 transition-colors">
+              <button className={`transition-colors ${
+                isScrolled ? 'text-gray-600 hover:text-blue-600' : 'text-white hover:text-blue-200'
+              }`}>
                 About
               </button>
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className="hidden md:block px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+              <button
+                onClick={handleLogin}
+                className={`hidden md:block px-4 py-2 rounded-lg border transition-colors ${
+                  isScrolled 
+                    ? 'border-gray-200 text-gray-600 hover:bg-gray-50' 
+                    : 'border-white border-opacity-30 text-white hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
                 Login
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button
+                onClick={handleSignUp}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isScrolled 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'bg-white text-blue-700 hover:bg-blue-50'
+                }`}
+              >
                 Sign Up
               </button>
             </div>
@@ -286,10 +344,16 @@ export default function EnhancedHome() {
               Connect with cutting-edge startups, find your dream role, and be part of building the future.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-              <button className="px-8 py-4 bg-white text-blue-700 rounded-xl font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200">
+              <button 
+                onClick={handleExploreStartups}
+                className="px-8 py-4 bg-white text-blue-700 rounded-xl font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200"
+              >
                 Explore Startups
               </button>
-              <button className="px-8 py-4 bg-blue-800 bg-opacity-30 text-white border-2 border-white border-opacity-30 backdrop-blur-sm rounded-xl font-bold text-lg hover:bg-opacity-40 transition-colors shadow-lg">
+              <button 
+                onClick={handleBrowseJobs}
+                className="px-8 py-4 bg-blue-800 bg-opacity-30 text-white border-2 border-white border-opacity-30 backdrop-blur-sm rounded-xl font-bold text-lg hover:bg-opacity-40 transition-colors shadow-lg"
+              >
                 Browse Jobs
               </button>
             </div>
@@ -456,7 +520,10 @@ export default function EnhancedHome() {
                 Discover innovative companies that are changing the world and defining the future
               </p>
             </div>
-            <button className="text-blue-600 font-medium flex items-center hover:text-blue-700">
+            <button 
+              onClick={handleExploreStartups}
+              className="text-blue-600 font-medium flex items-center hover:text-blue-700"
+            >
               View All
               <ChevronRight className="w-5 h-5 ml-1" />
             </button>
@@ -526,7 +593,10 @@ export default function EnhancedHome() {
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-2xl font-bold text-gray-900">Latest Opportunities</h3>
-                  <button className="text-green-600 font-medium flex items-center hover:text-green-700">
+                  <button 
+                    onClick={handleBrowseJobs}
+                    className="text-green-600 font-medium flex items-center hover:text-green-700"
+                  >
                     View All
                     <ChevronRight className="w-5 h-5 ml-1" />
                   </button>
@@ -537,6 +607,7 @@ export default function EnhancedHome() {
                     <div 
                       key={job.id} 
                       className="border-l-4 border-green-500 bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors group cursor-pointer"
+                      onClick={handleBrowseJobs}
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -568,7 +639,10 @@ export default function EnhancedHome() {
                 </div>
                 
                 <div className="mt-6 text-center">
-                  <button className="inline-block px-5 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
+                  <button 
+                    onClick={handleBrowseJobs}
+                    className="inline-block px-5 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
                     Find Your Next Role
                   </button>
                 </div>
@@ -627,7 +701,10 @@ export default function EnhancedHome() {
                     </div>
                   </div>
                   
-                  <button className="mt-6 w-full px-4 py-2 bg-white border border-purple-500 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-center">
+                  <button 
+                    onClick={handleSignUp}
+                    className="mt-6 w-full px-4 py-2 bg-white border border-purple-500 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-center"
+                  >
                     <span>Register Now</span>
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </button>
@@ -652,6 +729,7 @@ export default function EnhancedHome() {
             {industries.map((industry) => (
               <button 
                 key={industry.id}
+                onClick={handleExploreStartups}
                 className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 text-center"
               >
                 <div className="text-4xl mb-3">{industry.icon}</div>
@@ -716,10 +794,16 @@ export default function EnhancedHome() {
             Join thousands of professionals connecting with innovative startups and finding their dream roles.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <button className="px-8 py-4 bg-white text-blue-700 rounded-xl font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg">
+            <button
+              onClick={handleSignUp}
+              className="px-8 py-4 bg-white text-blue-700 rounded-xl font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
+            >
               Create Account
             </button>
-            <button className="px-8 py-4 bg-blue-800 bg-opacity-30 text-white border-2 border-white border-opacity-30 backdrop-blur-sm rounded-xl font-bold text-lg hover:bg-opacity-40 transition-colors shadow-lg">
+            <button 
+              onClick={handleExploreStartups}
+              className="px-8 py-4 bg-blue-800 bg-opacity-30 text-white border-2 border-white border-opacity-30 backdrop-blur-sm rounded-xl font-bold text-lg hover:bg-opacity-40 transition-colors shadow-lg"
+            >
               Explore Platform
             </button>
           </div>
@@ -769,8 +853,8 @@ export default function EnhancedHome() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Platform</h3>
               <ul className="space-y-3">
-                <li><button className="text-gray-400 hover:text-white transition-colors">Startups</button></li>
-                <li><button className="text-gray-400 hover:text-white transition-colors">Jobs</button></li>
+                <li><button onClick={handleExploreStartups} className="text-gray-400 hover:text-white transition-colors">Startups</button></li>
+                <li><button onClick={handleBrowseJobs} className="text-gray-400 hover:text-white transition-colors">Jobs</button></li>
                 <li><button className="text-gray-400 hover:text-white transition-colors">Investors</button></li>
                 <li><button className="text-gray-400 hover:text-white transition-colors">Events</button></li>
                 <li><button className="text-gray-400 hover:text-white transition-colors">Insights</button></li>
