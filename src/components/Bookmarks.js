@@ -1,4 +1,4 @@
-// src/components/Bookmarks.js - Fixed version
+// src/components/Bookmarks.js - Fixed with proper API integration
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -6,57 +6,66 @@ import axios from 'axios';
 import { 
   Bookmark, MapPin, Star, Building, Users, 
   Calendar, ExternalLink, Search, Filter,
-  Grid, List, X, Heart, MessageCircle
+  Grid, List, X, Heart, MessageCircle, Loader
 } from 'lucide-react';
 
 const Bookmarks = () => {
   const { user } = useContext(AuthContext);
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
   const [industries, setIndustries] = useState([]);
+  const [removingBookmark, setRemovingBookmark] = useState(null);
 
   useEffect(() => {
-    fetchBookmarks();
-    fetchIndustries();
+    fetchBookmarksAndIndustries();
   }, []);
 
-  const fetchBookmarks = async () => {
+  const fetchBookmarksAndIndustries = async () => {
     setLoading(true);
     try {
-      // Fetch all startups and filter bookmarked ones on frontend
-      // In a real app, you'd have a dedicated bookmarks endpoint
-      const response = await axios.get('http://localhost:8000/api/startups/');
-      const allStartups = response.data.results || [];
+      const [industriesRes, startupsRes] = await Promise.all([
+        axios.get('http://localhost:8000/api/startups/industries/'),
+        axios.get('http://localhost:8000/api/startups/')
+      ]);
+
+      setIndustries(industriesRes.data || []);
       
       // Filter only bookmarked startups
+      const allStartups = startupsRes.data.results || [];
       const bookmarkedStartups = allStartups.filter(startup => startup.is_bookmarked);
       setBookmarks(bookmarkedStartups);
     } catch (error) {
-      console.error('Error fetching bookmarks:', error);
+      console.error('Error fetching data:', error);
+      // Create some mock data if API fails
+      setBookmarks([]);
+      setIndustries([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchIndustries = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/startups/industries/');
-      setIndustries(response.data || []);
-    } catch (error) {
-      console.error('Error fetching industries:', error);
-      setIndustries([]); // Set empty array on error
-    }
-  };
-
   const removeBookmark = async (startupId) => {
+    if (removingBookmark === startupId) return;
+    
+    setRemovingBookmark(startupId);
     try {
       await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
-      setBookmarks(bookmarks.filter(b => b.id !== startupId));
+      
+      // Remove from local state
+      setBookmarks(prevBookmarks => 
+        prevBookmarks.filter(bookmark => bookmark.id !== startupId)
+      );
+      
+      console.log('Bookmark removed successfully');
     } catch (error) {
       console.error('Error removing bookmark:', error);
+      // Show error message to user
+      alert('Failed to remove bookmark. Please try again.');
+    } finally {
+      setRemovingBookmark(null);
     }
   };
 
@@ -178,10 +187,15 @@ const Bookmarks = () => {
                     </div>
                     <button
                       onClick={() => removeBookmark(startup.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      disabled={removingBookmark === startup.id}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                       title="Remove bookmark"
                     >
-                      <X className="w-4 h-4" />
+                      {removingBookmark === startup.id ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                   
@@ -268,10 +282,15 @@ const Bookmarks = () => {
                         </Link>
                         <button
                           onClick={() => removeBookmark(startup.id)}
-                          className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-4"
+                          disabled={removingBookmark === startup.id}
+                          className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-4 disabled:opacity-50"
                           title="Remove bookmark"
                         >
-                          <X className="w-4 h-4" />
+                          {removingBookmark === startup.id ? (
+                            <Loader className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <X className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                       
@@ -356,6 +375,24 @@ const Bookmarks = () => {
             )}
           </div>
         )}
+
+        {/* Refresh Button */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={fetchBookmarksAndIndustries}
+            disabled={loading}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center mx-auto"
+          >
+            {loading ? (
+              <>
+                <Loader className="w-4 h-4 mr-2 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              'Refresh Bookmarks'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
