@@ -1,11 +1,12 @@
-// src/components/Navbar.js - Complete Enhanced Navbar with Modern Design
-import React, { useContext, useState } from 'react';
+// src/components/Navbar.js - Fixed with working notifications
+import React, { useContext, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import axios from 'axios';
 import { 
   Home, Building, Briefcase, User, LogOut, Bell, 
   Search, Menu, X, ChevronDown, Settings, HelpCircle,
-  Star, Bookmark, Activity
+  Star, Bookmark, Activity, Check, AlertCircle
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -13,7 +14,9 @@ const Navbar = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [notifications] = useState(3); // Mock notification count
+  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
@@ -30,6 +33,100 @@ const Navbar = () => {
     { label: 'Help', icon: HelpCircle, path: '/help' },
   ];
 
+  // Fetch notifications on component mount
+  useEffect(() => {
+    fetchNotifications();
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      // Create mock notifications for now - replace with actual API call
+      const mockNotifications = [
+        {
+          id: 1,
+          type: 'job_application',
+          title: 'Application Status Update',
+          message: 'Your application to HealthAI has been reviewed',
+          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+          read: false,
+          icon: Briefcase,
+          color: 'text-blue-600'
+        },
+        {
+          id: 2,
+          type: 'startup_update',
+          title: 'New Startup Funding',
+          message: 'EcoCharge just raised $12M Series A',
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+          read: false,
+          icon: Building,
+          color: 'text-green-600'
+        },
+        {
+          id: 3,
+          type: 'job_alert',
+          title: 'New Job Match',
+          message: '3 new jobs match your interests',
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
+          read: true,
+          icon: Star,
+          color: 'text-yellow-600'
+        }
+      ];
+
+      setNotifications(mockNotifications);
+      setUnreadCount(mockNotifications.filter(n => !n.read).length);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, read: true }
+            : notification
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // TODO: Make API call to mark as read
+      // await axios.patch(`/api/notifications/${notificationId}/`, { read: true });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      
+      // TODO: Make API call to mark all as read
+      // await axios.patch('/api/notifications/mark-all-read/');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const formatTimeAgo = (timestamp) => {
+    const now = new Date();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  };
+
   const isActive = (path) => {
     return location.pathname === path;
   };
@@ -45,6 +142,12 @@ const Navbar = () => {
 
   const toggleProfileDropdown = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
+    setIsNotificationDropdownOpen(false);
+  };
+
+  const toggleNotificationDropdown = () => {
+    setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
+    setIsProfileDropdownOpen(false);
   };
 
   return (
@@ -106,14 +209,78 @@ const Navbar = () => {
 
               {/* Notifications */}
               <div className="relative">
-                <button className="p-2 text-gray-600 hover:text-blue-600 bg-gray-50 rounded-xl hover:bg-blue-50 transition-colors relative">
+                <button 
+                  onClick={toggleNotificationDropdown}
+                  className="relative p-2 text-gray-600 hover:text-blue-600 bg-gray-50 rounded-xl hover:bg-blue-50 transition-colors"
+                >
                   <Bell className="w-5 h-5" />
-                  {notifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                      {notifications}
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
+                      {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </button>
+
+                {/* Notifications Dropdown */}
+                {isNotificationDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 max-h-96 overflow-y-auto">
+                    <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                      <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    
+                    {notifications.length > 0 ? (
+                      <div className="py-2">
+                        {notifications.map((notification) => {
+                          const IconComponent = notification.icon;
+                          return (
+                            <div
+                              key={notification.id}
+                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                                !notification.read ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={() => !notification.read && markAsRead(notification.id)}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  notification.type === 'job_application' ? 'bg-blue-100' :
+                                  notification.type === 'startup_update' ? 'bg-green-100' :
+                                  'bg-yellow-100'
+                                }`}>
+                                  <IconComponent className={`w-4 h-4 ${notification.color}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                      {notification.title}
+                                    </p>
+                                    {!notification.read && (
+                                      <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 ml-2"></div>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                                  <p className="text-xs text-gray-500 mt-1">{formatTimeAgo(notification.timestamp)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center">
+                        <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500">No notifications yet</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Profile Dropdown */}
@@ -251,12 +418,13 @@ const Navbar = () => {
       </nav>
 
       {/* Backdrop for dropdowns */}
-      {(isProfileDropdownOpen || isMobileMenuOpen) && (
+      {(isProfileDropdownOpen || isMobileMenuOpen || isNotificationDropdownOpen) && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-25 md:hidden"
           onClick={() => {
             setIsProfileDropdownOpen(false);
             setIsMobileMenuOpen(false);
+            setIsNotificationDropdownOpen(false);
           }}
         />
       )}
