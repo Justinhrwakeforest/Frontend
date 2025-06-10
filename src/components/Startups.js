@@ -1,6 +1,6 @@
 // src/components/Startups.js - Fixed with working bookmark functionality
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import SearchBar from './SearchBar';
 import FilterChips from './FilterChips';
@@ -8,6 +8,7 @@ import useSearch from '../hooks/useSearch';
 import { Bookmark, BookmarkCheck, Heart, Star, Loader } from 'lucide-react';
 
 const Startups = () => {
+  const location = useLocation();
   const [filterOptions, setFilterOptions] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('-created_at');
@@ -43,6 +44,15 @@ const Startups = () => {
     loadFilterOptions();
   }, []);
 
+  // Handle search term from navigation state (from Home page)
+  useEffect(() => {
+    if (location.state?.searchTerm) {
+      handleSearch(location.state.searchTerm);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Handle search input
   const handleSearch = (searchTerm) => {
     updateFilters({ search: searchTerm });
@@ -68,7 +78,7 @@ const Startups = () => {
     try {
       const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
       
-      // Update the startup in the local state
+      // Update the startup in the local state immediately
       const updatedStartups = startups.map(startup => {
         if (startup.id === startupId) {
           return {
@@ -82,8 +92,11 @@ const Startups = () => {
         return startup;
       });
       
-      // Force a re-render with updated data
-      search(filters);
+      // Force a re-render by calling search with current filters
+      // This ensures we get the latest bookmark status from the server
+      setTimeout(() => {
+        search(filters);
+      }, 100);
       
       console.log('Bookmark toggled successfully:', response.data);
     } catch (error) {
@@ -103,7 +116,7 @@ const Startups = () => {
     try {
       const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/like/`);
       
-      // Update the startup in the local state
+      // Update the startup in the local state immediately
       const updatedStartups = startups.map(startup => {
         if (startup.id === startupId) {
           return {
@@ -117,8 +130,10 @@ const Startups = () => {
         return startup;
       });
       
-      // Force a re-render with updated data
-      search(filters);
+      // Force a re-render
+      setTimeout(() => {
+        search(filters);
+      }, 100);
       
       console.log('Like toggled successfully:', response.data);
     } catch (error) {
