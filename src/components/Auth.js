@@ -1,6 +1,6 @@
-// src/components/Auth.js - Complete authentication component with backend integration
+// src/components/Auth.js - Updated to handle redirects from welcome page
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
 import { 
@@ -12,7 +12,11 @@ import {
 export default function Auth() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  
+  // Check if user came from sign up action
+  const shouldShowSignUp = location.state?.showSignUp || false;
+  const [isLogin, setIsLogin] = useState(!shouldShowSignUp); // Start with signup if requested
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -25,6 +29,10 @@ export default function Auth() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Get redirect information from location state
+  const redirectTo = location.state?.redirectTo || '/';
+  const searchTerm = location.state?.searchTerm || '';
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -100,7 +108,12 @@ export default function Auth() {
         // Show success and redirect
         setShowSuccess(true);
         setTimeout(() => {
-          navigate('/');
+          // Navigate to the intended destination with search term if provided
+          if (searchTerm && redirectTo === '/startups') {
+            navigate(redirectTo, { state: { searchTerm } });
+          } else {
+            navigate(redirectTo);
+          }
         }, 1500);
         
       } else {
@@ -120,7 +133,12 @@ export default function Auth() {
         // Show success and redirect
         setShowSuccess(true);
         setTimeout(() => {
-          navigate('/');
+          // Navigate to the intended destination with search term if provided
+          if (searchTerm && redirectTo === '/startups') {
+            navigate(redirectTo, { state: { searchTerm } });
+          } else {
+            navigate(redirectTo);
+          }
         }, 1500);
       }
       
@@ -179,7 +197,9 @@ export default function Auth() {
                 {isLogin ? "Login Successful!" : "Registration Complete!"}
               </h3>
               <p className="text-gray-600">
-                Redirecting you to your dashboard...
+                {redirectTo === '/startups' ? 'Taking you to explore startups...' :
+                 redirectTo === '/jobs' ? 'Taking you to browse jobs...' :
+                 'Redirecting you to your dashboard...'}
               </p>
             </div>
           </div>
@@ -197,6 +217,20 @@ export default function Auth() {
               <p className="text-sm text-gray-600">
                 {isLogin ? "Access all the features of StartupHub" : "Join thousands of startup enthusiasts"}
               </p>
+              
+              {/* Show redirect information */}
+              {redirectTo !== '/' && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    {redirectTo === '/startups' && searchTerm ? 
+                      `After signing in, we'll search for "${searchTerm}" in startups` :
+                      redirectTo === '/startups' ? 'After signing in, you can explore startups' :
+                      redirectTo === '/jobs' ? 'After signing in, you can browse job opportunities' :
+                      'Complete your sign in to continue'
+                    }
+                  </p>
+                </div>
+              )}
             </div>
             
             {/* General Error Message */}
