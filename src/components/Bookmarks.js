@@ -1,4 +1,4 @@
-// src/components/Bookmarks.js - Fixed with proper API integration
+// src/components/Bookmarks.js - Fixed version with proper API integration
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -6,7 +6,8 @@ import axios from 'axios';
 import { 
   Bookmark, MapPin, Star, Building, Users, 
   Calendar, ExternalLink, Search, Filter,
-  Grid, List, X, Heart, MessageCircle, Loader
+  Grid, List, X, Heart, MessageCircle, Loader,
+  RefreshCw
 } from 'lucide-react';
 
 const Bookmarks = () => {
@@ -18,6 +19,7 @@ const Bookmarks = () => {
   const [filterIndustry, setFilterIndustry] = useState('');
   const [industries, setIndustries] = useState([]);
   const [removingBookmark, setRemovingBookmark] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchBookmarksAndIndustries();
@@ -26,22 +28,25 @@ const Bookmarks = () => {
   const fetchBookmarksAndIndustries = async () => {
     setLoading(true);
     try {
-      const [industriesRes, startupsRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/startups/industries/'),
-        axios.get('http://localhost:8000/api/startups/')
-      ]);
-
-      setIndustries(industriesRes.data || []);
+      // First get industries for filter
+      const industriesResponse = await axios.get('http://localhost:8000/api/startups/industries/');
+      setIndustries(industriesResponse.data || []);
       
-      // Filter only bookmarked startups
-      const allStartups = startupsRes.data.results || [];
-      const bookmarkedStartups = allStartups.filter(startup => startup.is_bookmarked);
-      setBookmarks(bookmarkedStartups);
+      // Then get bookmarked startups using the dedicated endpoint
+      const bookmarksResponse = await axios.get('http://localhost:8000/api/auth/bookmarks/');
+      setBookmarks(bookmarksResponse.data || []);
+      
+      console.log('Bookmarks loaded:', bookmarksResponse.data?.length || 0);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      // Create some mock data if API fails
-      setBookmarks([]);
-      setIndustries([]);
+      console.error('Error fetching bookmarks:', error);
+      // Fallback: try getting startups with bookmarked filter
+      try {
+        const fallbackResponse = await axios.get('http://localhost:8000/api/startups/?bookmarked=true');
+        setBookmarks(fallbackResponse.data.results || []);
+      } catch (fallbackError) {
+        console.error('Fallback fetch also failed:', fallbackError);
+        setBookmarks([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,14 +57,14 @@ const Bookmarks = () => {
     
     setRemovingBookmark(startupId);
     try {
-      await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
+      const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
       
-      // Remove from local state
+      // Remove from local state immediately for better UX
       setBookmarks(prevBookmarks => 
         prevBookmarks.filter(bookmark => bookmark.id !== startupId)
       );
       
-      console.log('Bookmark removed successfully');
+      console.log('Bookmark removed successfully:', response.data);
     } catch (error) {
       console.error('Error removing bookmark:', error);
       // Show error message to user
@@ -67,6 +72,12 @@ const Bookmarks = () => {
     } finally {
       setRemovingBookmark(null);
     }
+  };
+
+  const refreshBookmarks = async () => {
+    setRefreshing(true);
+    await fetchBookmarksAndIndustries();
+    setRefreshing(false);
   };
 
   const filteredBookmarks = bookmarks.filter(startup => {
@@ -92,13 +103,25 @@ const Bookmarks = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-2">
-            <Bookmark className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Your Bookmarks</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-3 mb-2">
+                <Bookmark className="w-8 h-8 text-blue-600" />
+                <h1 className="text-3xl font-bold text-gray-900">Your Bookmarks</h1>
+              </div>
+              <p className="text-gray-600">
+                {filteredBookmarks.length} {filteredBookmarks.length === 1 ? 'startup' : 'startups'} saved
+              </p>
+            </div>
+            <button
+              onClick={refreshBookmarks}
+              disabled={refreshing}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
-          <p className="text-gray-600">
-            {bookmarks.length} {bookmarks.length === 1 ? 'startup' : 'startups'} saved
-          </p>
         </div>
 
         {/* Controls */}
@@ -375,24 +398,6 @@ const Bookmarks = () => {
             )}
           </div>
         )}
-
-        {/* Refresh Button */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={fetchBookmarksAndIndustries}
-            disabled={loading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center mx-auto"
-          >
-            {loading ? (
-              <>
-                <Loader className="w-4 h-4 mr-2 animate-spin" />
-                Refreshing...
-              </>
-            ) : (
-              'Refresh Bookmarks'
-            )}
-          </button>
-        </div>
       </div>
     </div>
   );
