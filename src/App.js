@@ -1,4 +1,4 @@
-// src/App.js - Complete fixed version with proper syntax
+// src/App.js - Updated with new routes for profile features
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -9,6 +9,9 @@ import Startups from './components/Startups';
 import StartupDetail from './components/StartupDetail';
 import Jobs from './components/Jobs';
 import Profile from './components/Profile';
+import Bookmarks from './components/Bookmarks';
+import Settings from './components/Settings';
+import Activity from './components/Activity';
 import Navbar from './components/Navbar';
 import './App.css';
 
@@ -29,7 +32,6 @@ const ProtectedRoute = ({ children }) => {
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useContext(AuthContext);
 
-  // Debug logging
   console.log('Auth status:', { isAuthenticated, loading });
 
   if (loading) {
@@ -103,18 +105,28 @@ const AppRoutes = () => {
               </ProtectedRoute>
             } 
           />
-          
-          {/* Default route - redirects based on auth status */}
           <Route 
-            path="/" 
+            path="/bookmarks" 
             element={
-              isAuthenticated ? (
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              ) : (
-                <Navigate to="/welcome" replace />
-              )
+              <ProtectedRoute>
+                <Bookmarks />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/activity" 
+            element={
+              <ProtectedRoute>
+                <Activity />
+              </ProtectedRoute>
             } 
           />
           
