@@ -1,11 +1,17 @@
-import { useState } from "react";
+// src/components/Auth.js - Complete authentication component with backend integration
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import axios from "axios";
 import { 
   Mail, Lock, User, Eye, EyeOff, 
   CheckCircle, X, AlertCircle,
   Github, Linkedin
 } from "lucide-react";
 
-export default function EnhancedAuth() {
+export default function Auth() {
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -78,38 +84,63 @@ export default function EnhancedAuth() {
     }
     
     setLoading(true);
+    setErrors({});
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // For demo purposes, simulate success
-      console.log("Form submitted:", formData);
-      
-      // Show success message
-      setShowSuccess(true);
-      
-      // Reset form after a delay
-      setTimeout(() => {
-        setShowSuccess(false);
-        setFormData({
-          email: "",
-          password: "",
-          username: "",
-          firstName: "",
-          lastName: "",
-          confirmPassword: ""
+      if (isLogin) {
+        // Login API call
+        const response = await axios.post('http://localhost:8000/api/auth/login/', {
+          email: formData.email,
+          password: formData.password
         });
         
-        // Redirect to dashboard or other page in a real app
-        // window.location.href = "/dashboard";
-      }, 2000);
+        // Use context login function
+        login(response.data.token, response.data.user);
+        
+        // Show success and redirect
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+        
+      } else {
+        // Registration API call
+        const response = await axios.post('http://localhost:8000/api/auth/register/', {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          password_confirm: formData.confirmPassword,
+          first_name: formData.firstName,
+          last_name: formData.lastName
+        });
+        
+        // Auto-login after successful registration
+        login(response.data.token, response.data.user);
+        
+        // Show success and redirect
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      }
       
     } catch (error) {
-      console.error("Error submitting form:", error);
-      setErrors({
-        general: "An error occurred. Please try again."
-      });
+      console.error('Auth error:', error);
+      
+      if (error.response?.data) {
+        // Handle field-specific errors from backend
+        const backendErrors = error.response.data;
+        
+        if (typeof backendErrors === 'object') {
+          setErrors(backendErrors);
+        } else if (typeof backendErrors === 'string') {
+          setErrors({ general: backendErrors });
+        } else {
+          setErrors({ general: 'Authentication failed. Please try again.' });
+        }
+      } else {
+        setErrors({ general: 'Network error. Please check your connection.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -118,6 +149,14 @@ export default function EnhancedAuth() {
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setErrors({});
+    setFormData({
+      email: "",
+      password: "",
+      username: "",
+      firstName: "",
+      lastName: "",
+      confirmPassword: ""
+    });
   };
   
   const togglePasswordVisibility = () => {
@@ -140,9 +179,7 @@ export default function EnhancedAuth() {
                 {isLogin ? "Login Successful!" : "Registration Complete!"}
               </h3>
               <p className="text-gray-600">
-                {isLogin 
-                  ? "Redirecting you to your dashboard..." 
-                  : "Your account has been created successfully. You can now log in."}
+                Redirecting you to your dashboard...
               </p>
             </div>
           </div>
