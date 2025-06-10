@@ -1,4 +1,4 @@
-// src/App.js - Updated with startup detail route
+// src/App.js - Complete fixed version with proper syntax
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -6,7 +6,7 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Home from './components/Home';
 import Startups from './components/Startups';
-import StartupDetail from './components/StartupDetail'; // New import
+import StartupDetail from './components/StartupDetail';
 import Jobs from './components/Jobs';
 import Profile from './components/Profile';
 import Navbar from './components/Navbar';
@@ -29,6 +29,9 @@ const ProtectedRoute = ({ children }) => {
 const AppRoutes = () => {
   const { isAuthenticated, loading } = useContext(AuthContext);
 
+  // Debug logging
+  console.log('Auth status:', { isAuthenticated, loading });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -43,15 +46,20 @@ const AppRoutes = () => {
   return (
     <Router>
       <div className="App">
+        {/* Only show authenticated navbar when user is logged in and not on welcome page */}
         {isAuthenticated && <Navbar />}
+        
         <Routes>
-          {/* Public route for the landing page */}
-          <Route path="/welcome" element={<Home />} />
+          {/* Public welcome page - shows when not authenticated */}
+          <Route 
+            path="/welcome" 
+            element={!isAuthenticated ? <Home /> : <Navigate to="/" />} 
+          />
           
           {/* Auth route - redirects to dashboard if already authenticated */}
           <Route 
             path="/auth" 
-            element={isAuthenticated ? <Navigate to="/" /> : <Auth />} 
+            element={!isAuthenticated ? <Auth /> : <Navigate to="/" />} 
           />
           
           {/* Protected routes - require authentication */}
@@ -71,7 +79,6 @@ const AppRoutes = () => {
               </ProtectedRoute>
             } 
           />
-          {/* New startup detail route */}
           <Route 
             path="/startups/:id" 
             element={
@@ -97,11 +104,25 @@ const AppRoutes = () => {
             } 
           />
           
+          {/* Default route - redirects based on auth status */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? (
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              ) : (
+                <Navigate to="/welcome" replace />
+              )
+            } 
+          />
+          
           {/* Catch-all redirect */}
           <Route 
             path="*" 
             element={
-              isAuthenticated ? <Navigate to="/" /> : <Navigate to="/welcome" />
+              isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/welcome" replace />
             } 
           />
         </Routes>
