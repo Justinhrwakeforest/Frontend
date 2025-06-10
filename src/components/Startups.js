@@ -1,15 +1,18 @@
-// src/components/Startups.js - Updated startup cards with links to detail pages
+// src/components/Startups.js - Fixed with working bookmark functionality
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import SearchBar from './SearchBar';
 import FilterChips from './FilterChips';
 import useSearch from '../hooks/useSearch';
+import { Bookmark, BookmarkCheck, Heart, Star, Loader } from 'lucide-react';
 
 const Startups = () => {
   const [filterOptions, setFilterOptions] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('-created_at');
+  const [bookmarkingStates, setBookmarkingStates] = useState({});
+  const [likingStates, setLikingStates] = useState({});
   
   // Search hook for managing search state
   const {
@@ -22,7 +25,8 @@ const Startups = () => {
     updateFilters,
     resetFilters,
     removeFilter,
-    loadMore
+    loadMore,
+    search
   } = useSearch('http://localhost:8000/api/startups/');
 
   // Load filter options on component mount
@@ -53,6 +57,76 @@ const Startups = () => {
   const handleSortChange = (newSortBy) => {
     setSortBy(newSortBy);
     updateFilters({ ordering: newSortBy });
+  };
+
+  // Handle bookmark toggle
+  const handleBookmark = async (startupId, currentBookmarkState) => {
+    if (bookmarkingStates[startupId]) return; // Prevent double-clicking
+    
+    setBookmarkingStates(prev => ({ ...prev, [startupId]: true }));
+    
+    try {
+      const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
+      
+      // Update the startup in the local state
+      const updatedStartups = startups.map(startup => {
+        if (startup.id === startupId) {
+          return {
+            ...startup,
+            is_bookmarked: !currentBookmarkState,
+            total_bookmarks: currentBookmarkState 
+              ? startup.total_bookmarks - 1 
+              : startup.total_bookmarks + 1
+          };
+        }
+        return startup;
+      });
+      
+      // Force a re-render with updated data
+      search(filters);
+      
+      console.log('Bookmark toggled successfully:', response.data);
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      alert('Failed to update bookmark. Please try again.');
+    } finally {
+      setBookmarkingStates(prev => ({ ...prev, [startupId]: false }));
+    }
+  };
+
+  // Handle like toggle
+  const handleLike = async (startupId, currentLikeState) => {
+    if (likingStates[startupId]) return; // Prevent double-clicking
+    
+    setLikingStates(prev => ({ ...prev, [startupId]: true }));
+    
+    try {
+      const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/like/`);
+      
+      // Update the startup in the local state
+      const updatedStartups = startups.map(startup => {
+        if (startup.id === startupId) {
+          return {
+            ...startup,
+            is_liked: !currentLikeState,
+            total_likes: currentLikeState 
+              ? startup.total_likes - 1 
+              : startup.total_likes + 1
+          };
+        }
+        return startup;
+      });
+      
+      // Force a re-render with updated data
+      search(filters);
+      
+      console.log('Like toggled successfully:', response.data);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      alert('Failed to update like. Please try again.');
+    } finally {
+      setLikingStates(prev => ({ ...prev, [startupId]: false }));
+    }
   };
 
   // Filter labels for chips
@@ -285,12 +359,11 @@ const Startups = () => {
           )}
         </div>
 
-        {/* Results Grid - Updated with clickable cards */}
+        {/* Results Grid - Updated with working bookmark/like functionality */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {startups.map((startup) => (
-            <Link
+            <div
               key={startup.id}
-              to={`/startups/${startup.id}`}
               className="block bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-blue-300 transform hover:-translate-y-1"
             >
               <div className="p-6">
@@ -298,9 +371,12 @@ const Startups = () => {
                   <div className="text-3xl">{startup.logo}</div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                      <Link 
+                        to={`/startups/${startup.id}`}
+                        className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                      >
                         {startup.name}
-                      </h3>
+                      </Link>
                       {startup.is_featured && (
                         <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                           Featured
@@ -323,7 +399,7 @@ const Startups = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-yellow-400">⭐</span>
-                      <span className="text-sm text-gray-600">{startup.average_rating.toFixed(1)}</span>
+                      <span className="text-sm text-gray-600">{startup.average_rating?.toFixed(1) || 'N/A'}</span>
                       <span className="text-xs text-gray-500">({startup.total_ratings})</span>
                     </div>
                   </div>
@@ -355,18 +431,68 @@ const Startups = () => {
                     </div>
                   )}
                   
-                  {/* View Details Indicator */}
-                  <div className="pt-2 border-t border-gray-100">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">👁️ {startup.views} views</span>
-                      <span className="text-blue-600 font-medium hover:text-blue-700">
-                        View Details →
-                      </span>
+                  {/* Action Buttons and View Details */}
+                  <div className="pt-2 border-t border-gray-100 space-y-3">
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleLike(startup.id, startup.is_liked);
+                          }}
+                          disabled={likingStates[startup.id]}
+                          className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            startup.is_liked
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
+                          } disabled:opacity-50`}
+                        >
+                          {likingStates[startup.id] ? (
+                            <Loader className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Heart className={`w-3 h-3 ${startup.is_liked ? 'fill-current' : ''}`} />
+                          )}
+                          <span>{startup.total_likes || 0}</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleBookmark(startup.id, startup.is_bookmarked);
+                          }}
+                          disabled={bookmarkingStates[startup.id]}
+                          className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            startup.is_bookmarked
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                          } disabled:opacity-50`}
+                        >
+                          {bookmarkingStates[startup.id] ? (
+                            <Loader className="w-3 h-3 animate-spin" />
+                          ) : startup.is_bookmarked ? (
+                            <BookmarkCheck className="w-3 h-3 fill-current" />
+                          ) : (
+                            <Bookmark className="w-3 h-3" />
+                          )}
+                          <span>{startup.is_bookmarked ? 'Saved' : 'Save'}</span>
+                        </button>
+                      </div>
+
+                      <span className="text-gray-500 text-xs">👁️ {startup.views} views</span>
                     </div>
+
+                    {/* View Details Link */}
+                    <Link
+                      to={`/startups/${startup.id}`}
+                      className="block w-full text-center py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    >
+                      View Details →
+                    </Link>
                   </div>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
 
