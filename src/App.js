@@ -1,4 +1,4 @@
-// src/App.js - Updated with new routes for profile features
+// src/App.js - Updated with Help route
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -12,6 +12,7 @@ import Profile from './components/Profile';
 import Bookmarks from './components/Bookmarks';
 import Settings from './components/Settings';
 import Activity from './components/Activity';
+import Help from './components/Help';
 import Navbar from './components/Navbar';
 import './App.css';
 
@@ -126,6 +127,14 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <Activity />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/help" 
+            element={
+              <ProtectedRoute>
+                <Help />
               </ProtectedRoute>
             } 
           />
