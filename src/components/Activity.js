@@ -1,4 +1,4 @@
-// src/components/Activity.js - User Activity Component
+// src/components/Activity.js - Fixed User Activity Component
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -6,7 +6,8 @@ import axios from 'axios';
 import { 
   Activity as ActivityIcon, Star, MessageCircle, Heart, 
   Bookmark, Calendar, Clock, Building, Filter,
-  TrendingUp, Award, Target, ChevronRight
+  TrendingUp, Award, Target, ChevronRight, Briefcase,
+  RefreshCw, Users, MapPin
 } from 'lucide-react';
 
 const Activity = () => {
@@ -15,6 +16,7 @@ const Activity = () => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
   const [timeRange, setTimeRange] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchActivity();
@@ -25,11 +27,33 @@ const Activity = () => {
     try {
       const response = await axios.get('http://localhost:8000/api/auth/activity/');
       setActivity(response.data);
+      console.log('Activity data loaded:', response.data);
     } catch (error) {
       console.error('Error fetching activity:', error);
+      // Set empty activity if error
+      setActivity({
+        recent_ratings: [],
+        recent_comments: [],
+        bookmarked_startups: [],
+        liked_startups: [],
+        job_applications: [],
+        activity_counts: {
+          total_ratings: 0,
+          total_comments: 0,
+          total_bookmarks: 0,
+          total_likes: 0,
+          total_applications: 0
+        }
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const refreshActivity = async () => {
+    setRefreshing(true);
+    await fetchActivity();
+    setRefreshing(false);
   };
 
   const getActivityItems = () => {
@@ -51,7 +75,9 @@ const Activity = () => {
           startup: {
             id: rating.startup_id,
             name: rating.startup_name,
-            logo: rating.startup_logo
+            logo: rating.startup_logo,
+            location: rating.startup_location,
+            industry: rating.startup_industry
           },
           timestamp: rating.created_at,
           metadata: { rating: rating.rating }
@@ -73,7 +99,8 @@ const Activity = () => {
           startup: {
             id: comment.startup_id,
             name: comment.startup_name,
-            logo: comment.startup_logo
+            logo: comment.startup_logo,
+            location: comment.startup_location
           },
           timestamp: comment.created_at
         });
@@ -94,7 +121,12 @@ const Activity = () => {
           startup: {
             id: bookmark.startup_id,
             name: bookmark.startup_name,
-            logo: bookmark.startup_logo
+            logo: bookmark.startup_logo,
+            location: bookmark.startup_location,
+            industry: bookmark.startup_industry,
+            description: bookmark.startup_description,
+            employee_count: bookmark.startup_employee_count,
+            funding_amount: bookmark.startup_funding_amount
           },
           timestamp: bookmark.created_at
         });
@@ -115,9 +147,39 @@ const Activity = () => {
           startup: {
             id: like.startup_id,
             name: like.startup_name,
-            logo: like.startup_logo
+            logo: like.startup_logo,
+            location: like.startup_location
           },
           timestamp: like.created_at
+        });
+      });
+    }
+
+    // Add job applications
+    if (activity.job_applications) {
+      activity.job_applications.forEach(application => {
+        items.push({
+          id: `application-${application.job_id}-${application.applied_at}`,
+          type: 'application',
+          icon: Briefcase,
+          iconColor: 'text-purple-500',
+          bgColor: 'bg-purple-50',
+          title: 'Applied for a job',
+          description: `Applied for ${application.job_title} at ${application.startup_name}`,
+          startup: {
+            id: application.startup_id,
+            name: application.startup_name,
+            logo: application.startup_logo
+          },
+          job: {
+            id: application.job_id,
+            title: application.job_title
+          },
+          timestamp: application.applied_at,
+          metadata: { 
+            status: application.status,
+            status_display: application.status_display
+          }
         });
       });
     }
@@ -172,13 +234,25 @@ const Activity = () => {
   };
 
   const getActivityStats = () => {
-    const items = getActivityItems();
+    if (!activity || !activity.activity_counts) {
+      return {
+        total: 0,
+        ratings: 0,
+        comments: 0,
+        bookmarks: 0,
+        likes: 0,
+        applications: 0
+      };
+    }
+
+    const counts = activity.activity_counts;
     return {
-      total: items.length,
-      ratings: items.filter(item => item.type === 'rating').length,
-      comments: items.filter(item => item.type === 'comment').length,
-      bookmarks: items.filter(item => item.type === 'bookmark').length,
-      likes: items.filter(item => item.type === 'like').length
+      total: counts.total_ratings + counts.total_comments + counts.total_bookmarks + counts.total_likes + counts.total_applications,
+      ratings: counts.total_ratings,
+      comments: counts.total_comments,
+      bookmarks: counts.total_bookmarks,
+      likes: counts.total_likes,
+      applications: counts.total_applications
     };
   };
 
@@ -200,51 +274,27 @@ const Activity = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-2">
-            <ActivityIcon className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Your Activity</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-3 mb-2">
+                <ActivityIcon className="w-8 h-8 text-blue-600" />
+                <h1 className="text-3xl font-bold text-gray-900">Your Activity</h1>
+              </div>
+              <p className="text-gray-600">Track your interactions and engagement on StartupHub</p>
+            </div>
+            <button
+              onClick={refreshActivity}
+              disabled={refreshing}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
-          <p className="text-gray-600">Track your interactions and engagement on StartupHub</p>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Activity</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Ratings</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.ratings}</p>
-              </div>
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Star className="w-5 h-5 text-yellow-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Comments</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.comments}</p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -268,6 +318,18 @@ const Activity = () => {
               </div>
             </div>
           </div>
+          
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Applications</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.applications}</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
@@ -285,6 +347,7 @@ const Activity = () => {
                 <option value="comment">Comments</option>
                 <option value="bookmark">Bookmarks</option>
                 <option value="like">Likes</option>
+                <option value="application">Job Applications</option>
               </select>
               
               <select
@@ -329,6 +392,16 @@ const Activity = () => {
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
                               {item.type}
                             </span>
+                            {item.metadata?.status && (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                item.metadata.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                item.metadata.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                item.metadata.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {item.metadata.status_display}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             <Clock className="w-4 h-4 mr-1" />
@@ -338,12 +411,26 @@ const Activity = () => {
                         
                         <div className="mt-2 flex items-center space-x-3">
                           <span className="text-2xl">{item.startup.logo}</span>
-                          <Link
-                            to={`/startups/${item.startup.id}`}
-                            className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                          >
-                            {item.startup.name}
-                          </Link>
+                          <div>
+                            <Link
+                              to={`/startups/${item.startup.id}`}
+                              className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                            >
+                              {item.startup.name}
+                            </Link>
+                            {item.startup.location && (
+                              <div className="flex items-center text-xs text-gray-500 mt-1">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {item.startup.location}
+                                {item.startup.industry && (
+                                  <>
+                                    <span className="mx-1">•</span>
+                                    {item.startup.industry}
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="mt-2">
@@ -371,8 +458,34 @@ const Activity = () => {
                             </div>
                           )}
                           
-                          {(item.type === 'bookmark' || item.type === 'like') && (
+                          {item.type === 'bookmark' && item.startup.description && (
+                            <div className="mt-2">
+                              <p className="text-sm text-gray-600 line-clamp-2">{item.startup.description}</p>
+                              {item.startup.employee_count && (
+                                <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                  <span className="flex items-center">
+                                    <Users className="w-3 h-3 mr-1" />
+                                    {item.startup.employee_count} employees
+                                  </span>
+                                  {item.startup.funding_amount && (
+                                    <span className="flex items-center">
+                                      💰 {item.startup.funding_amount}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {(item.type === 'like' || (item.type === 'application' && !item.startup.description)) && (
                             <p className="text-sm text-gray-600">{item.description}</p>
+                          )}
+
+                          {item.type === 'application' && item.job && (
+                            <div className="mt-2 p-3 bg-purple-50 rounded-lg">
+                              <p className="text-sm font-medium text-purple-900">Job: {item.job.title}</p>
+                              <p className="text-xs text-purple-700 mt-1">Status: {item.metadata.status_display}</p>
+                            </div>
                           )}
                         </div>
                         
@@ -468,7 +581,7 @@ const Activity = () => {
           </Link>
           
           <Link
-            to="/profile?tab=bookmarks"
+            to="/bookmarks"
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:border-purple-300 hover:shadow-md transition-all"
           >
             <div className="flex items-center space-x-4">
@@ -487,4 +600,40 @@ const Activity = () => {
   );
 };
 
-export default Activity;
+export default Activity;-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Activity</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Ratings</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.ratings}</p>
+              </div>
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Star className="w-5 h-5 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Comments</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.comments}</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items
