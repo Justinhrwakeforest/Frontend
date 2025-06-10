@@ -1,4 +1,4 @@
-// src/components/Dashboard.js - Enhanced with modern design and features
+// src/components/Dashboard.js - Fixed version with better error handling
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -6,7 +6,7 @@ import {
   TrendingUp, Star, MapPin, Users, Clock, ChevronRight, 
   Briefcase, Building, Award, Activity, Calendar, 
   ArrowUp, ArrowDown, Eye, Heart, Bookmark, Search,
-  Zap, Target, Rocket, Filter
+  Zap, Target, Rocket, Filter, AlertCircle
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -17,69 +17,59 @@ const Dashboard = () => {
   });
   const [featuredStartups, setFeaturedStartups] = useState([]);
   const [recentJobs, setRecentJobs] = useState([]);
-  const [trendingStartups, setTrendingStartups] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      const [statsRes, startupsRes, jobsRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/stats/'),
-        axios.get('http://localhost:8000/api/startups/?is_featured=true&page_size=3'),
-        axios.get('http://localhost:8000/api/jobs/?page_size=3&ordering=-posted_at')
-      ]);
-
-      setStats(statsRes.data);
-      setFeaturedStartups(startupsRes.data.results || []);
-      setRecentJobs(jobsRes.data.results || []);
+      console.log('Fetching dashboard data...');
       
-      // Mock trending startups data
-      setTrendingStartups([
-        { id: 1, name: "TechFlow", change: "+12%", logo: "⚡" },
-        { id: 2, name: "DataCorp", change: "+8%", logo: "📊" },
-        { id: 3, name: "AI Labs", change: "+15%", logo: "🤖" }
-      ]);
+      // Fetch stats
+      const statsRes = await axios.get('http://localhost:8000/api/stats/');
+      console.log('Stats response:', statsRes.data);
+      setStats(statsRes.data);
 
-      // Mock recent activity
-      setRecentActivity([
-        { id: 1, type: "rating", text: "You rated HealthAI", time: "2 hours ago", icon: "⭐" },
-        { id: 2, type: "bookmark", text: "Bookmarked EcoCharge", time: "1 day ago", icon: "🔖" },
-        { id: 3, type: "application", text: "Applied to Software Engineer at TechFlow", time: "2 days ago", icon: "💼" }
-      ]);
+      // Fetch featured startups
+      const startupsRes = await axios.get('http://localhost:8000/api/startups/', {
+        params: { is_featured: true, page_size: 3 }
+      });
+      console.log('Featured startups response:', startupsRes.data);
+      setFeaturedStartups(startupsRes.data.results || []);
 
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      // Fetch recent jobs
+      const jobsRes = await axios.get('http://localhost:8000/api/jobs/', {
+        params: { page_size: 3, ordering: '-posted_at' }
+      });
+      console.log('Recent jobs response:', jobsRes.data);
+      setRecentJobs(jobsRes.data.results || []);
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message);
+      
+      // Set some default values if API fails
+      setStats({
+        total_startups: 0,
+        total_jobs: 0,
+        total_industries: 0
+      });
+      setFeaturedStartups([]);
+      setRecentJobs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Rocket className="w-6 h-6 text-blue-600 animate-pulse" />
-              </div>
-            </div>
-            <p className="text-gray-600 font-medium">Loading your dashboard...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const statCards = [
     {
-      title: 'Total Startups',
+      title: 'Innovative Startups',
       value: stats.total_startups,
       icon: Building,
       color: 'blue',
@@ -89,7 +79,7 @@ const Dashboard = () => {
       changeDirection: 'up'
     },
     {
-      title: 'Open Jobs',
+      title: 'Open Opportunities',
       value: stats.total_jobs,
       icon: Briefcase,
       color: 'green',
@@ -99,7 +89,7 @@ const Dashboard = () => {
       changeDirection: 'up'
     },
     {
-      title: 'Industries',
+      title: 'Industry Categories',
       value: stats.total_industries,
       icon: Award,
       color: 'purple',
@@ -120,32 +110,41 @@ const Dashboard = () => {
     }
   ];
 
-  const quickActions = [
-    {
-      title: "Explore Startups",
-      description: "Discover innovative companies",
-      icon: Rocket,
-      link: "/startups",
-      gradient: "from-blue-500 to-purple-600",
-      hoverGradient: "from-blue-600 to-purple-700"
-    },
-    {
-      title: "Find Jobs",
-      description: "Browse open positions",
-      icon: Target,
-      link: "/jobs",
-      gradient: "from-green-500 to-teal-600",
-      hoverGradient: "from-green-600 to-teal-700"
-    },
-    {
-      title: "Update Profile",
-      description: "Manage your account",
-      icon: Users,
-      link: "/profile",
-      gradient: "from-purple-500 to-pink-600",
-      hoverGradient: "from-purple-600 to-pink-700"
-    }
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Rocket className="w-6 h-6 text-blue-600 animate-pulse" />
+              </div>
+            </div>
+            <p className="text-gray-600 font-medium">Loading your dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Dashboard Error</h2>
+          <p className="text-gray-600 mb-4">Failed to load dashboard data: {error}</p>
+          <button 
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -166,16 +165,12 @@ const Dashboard = () => {
             </div>
             
             <div className="mt-4 md:mt-0 flex items-center space-x-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Quick search..."
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-                />
-              </div>
-              <button className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                <Filter className="w-5 h-5" />
+              <button
+                onClick={fetchDashboardData}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Refresh
               </button>
             </div>
           </div>
@@ -207,7 +202,7 @@ const Dashboard = () => {
               </div>
               
               <div>
-                <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value.toLocaleString()}</p>
                 <p className="text-gray-600 font-medium">{stat.title}</p>
               </div>
               
@@ -281,53 +276,42 @@ const Dashboard = () => {
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Building className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>No featured startups found.</p>
+                  <p>No featured startups available.</p>
+                  <p className="text-sm mt-1">Check back later or explore all startups.</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Trending & Activity */}
-          <div className="space-y-6">
-            {/* Trending Startups */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-gradient-to-r from-green-500 to-teal-600 rounded-xl">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">Trending</h3>
+          {/* Recent Activity */}
+          <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
+                <Clock className="w-5 h-5 text-white" />
               </div>
-              <div className="space-y-3">
-                {trendingStartups.map((startup, index) => (
-                  <div key={startup.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg">{startup.logo}</span>
-                      <span className="font-medium text-gray-900">{startup.name}</span>
-                    </div>
-                    <span className="text-green-600 font-medium text-sm">{startup.change}</span>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
             </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
-                  <Clock className="w-5 h-5 text-white" />
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                <span className="text-lg">⭐</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-900">You rated HealthAI</p>
+                  <p className="text-xs text-gray-500">2 hours ago</p>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
               </div>
-              <div className="space-y-3">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                    <span className="text-lg">{activity.icon}</span>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">{activity.text}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                <span className="text-lg">🔖</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-900">Bookmarked EcoCharge</p>
+                  <p className="text-xs text-gray-500">1 day ago</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                <span className="text-lg">💼</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-900">Applied to Software Engineer</p>
+                  <p className="text-xs text-gray-500">2 days ago</p>
+                </div>
               </div>
             </div>
           </div>
@@ -404,41 +388,10 @@ const Dashboard = () => {
             ) : (
               <div className="col-span-full text-center py-8 text-gray-500">
                 <Briefcase className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No jobs found.</p>
+                <p>No jobs available at the moment.</p>
+                <p className="text-sm mt-1">Check back later for new opportunities.</p>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Enhanced Quick Actions */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quickActions.map((action, index) => (
-              <Link
-                key={index}
-                to={action.link}
-                className={`group relative overflow-hidden rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-r ${action.gradient}`}
-              >
-                <div className="relative z-10">
-                  <action.icon className="w-8 h-8 mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="text-lg font-bold mb-2">{action.title}</h3>
-                  <p className="text-white/90 text-sm">{action.description}</p>
-                </div>
-                
-                {/* Hover effect overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-r ${action.hoverGradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
-                
-                {/* Decorative circle */}
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-              </Link>
-            ))}
           </div>
         </div>
       </div>
