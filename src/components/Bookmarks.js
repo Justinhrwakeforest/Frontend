@@ -1,4 +1,7 @@
-// src/components/Bookmarks.js - Fixed version with proper API integration
+// ===========================
+// 1. UPDATED src/components/Bookmarks.js
+// ===========================
+
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -32,16 +35,18 @@ const Bookmarks = () => {
       const industriesResponse = await axios.get('http://localhost:8000/api/startups/industries/');
       setIndustries(industriesResponse.data || []);
       
-      // Then get bookmarked startups using the dedicated endpoint
+      // Get bookmarked startups using the correct endpoint
       const bookmarksResponse = await axios.get('http://localhost:8000/api/auth/bookmarks/');
       setBookmarks(bookmarksResponse.data || []);
       
       console.log('Bookmarks loaded:', bookmarksResponse.data?.length || 0);
     } catch (error) {
       console.error('Error fetching bookmarks:', error);
-      // Fallback: try getting startups with bookmarked filter
+      // If the endpoint doesn't exist, try the alternative method
       try {
-        const fallbackResponse = await axios.get('http://localhost:8000/api/startups/?bookmarked=true');
+        const fallbackResponse = await axios.get('http://localhost:8000/api/startups/', {
+          params: { bookmarked: true }
+        });
         setBookmarks(fallbackResponse.data.results || []);
       } catch (fallbackError) {
         console.error('Fallback fetch also failed:', fallbackError);
