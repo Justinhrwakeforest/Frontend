@@ -210,20 +210,27 @@ export default function EnhancedStartupDetail() {
     }, 500);
   };
 
-  const handleBookmark = () => {
-    if (submittingAction) return;
+  const handleBookmark = async () => {
+  if (submittingAction) return;
+  
+  setSubmittingAction(true);
+  try {
+    const response = await axios.post(`http://localhost:8000/api/startups/${startup.id}/bookmark/`);
     
-    setSubmittingAction(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsBookmarked(!isBookmarked);
-      setStartup(prev => ({
-        ...prev,
-        total_bookmarks: isBookmarked ? prev.total_bookmarks - 1 : prev.total_bookmarks + 1
-      }));
-      setSubmittingAction(false);
-    }, 500);
-  };
+    setIsBookmarked(response.data.bookmarked);
+    setStartup(prev => ({
+      ...prev,
+      total_bookmarks: response.data.total_bookmarks
+    }));
+    
+    console.log('Bookmark toggled successfully:', response.data);
+  } catch (error) {
+    console.error('Error toggling bookmark:', error);
+    alert('Failed to update bookmark. Please try again.');
+  } finally {
+    setSubmittingAction(false);
+  }
+};
 
   const handleComment = (e) => {
     e.preventDefault();
