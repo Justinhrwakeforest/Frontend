@@ -27,7 +27,7 @@ const Startups = () => {
     resetFilters,
     removeFilter,
     loadMore,
-    search
+    updateResults  // Add this
   } = useSearch('http://localhost:8000/api/startups/');
 
   // Load filter options on component mount
@@ -69,43 +69,37 @@ const Startups = () => {
     updateFilters({ ordering: newSortBy });
   };
 
-  // Handle bookmark toggle
   const handleBookmark = async (startupId, currentBookmarkState) => {
-    if (bookmarkingStates[startupId]) return; // Prevent double-clicking
+  if (bookmarkingStates[startupId]) return; // Prevent double-clicking
+  
+  setBookmarkingStates(prev => ({ ...prev, [startupId]: true }));
+  
+  try {
+    const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
     
-    setBookmarkingStates(prev => ({ ...prev, [startupId]: true }));
-    
-    try {
-      const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
-      
-      // Update the startup in the local state immediately
-      const updatedStartups = startups.map(startup => {
+    // Check if the response indicates success
+    if (response.data.success !== false) {
+      // Update the startup in the local state immediately using the setter from useSearch
+      updateResults(startup => {
         if (startup.id === startupId) {
           return {
             ...startup,
-            is_bookmarked: !currentBookmarkState,
-            total_bookmarks: currentBookmarkState 
-              ? startup.total_bookmarks - 1 
-              : startup.total_bookmarks + 1
+            is_bookmarked: response.data.bookmarked,
+            total_bookmarks: response.data.total_bookmarks
           };
         }
         return startup;
       });
       
-      // Force a re-render by calling search with current filters
-      // This ensures we get the latest bookmark status from the server
-      setTimeout(() => {
-        search(filters);
-      }, 100);
-      
       console.log('Bookmark toggled successfully:', response.data);
-    } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      alert('Failed to update bookmark. Please try again.');
-    } finally {
-      setBookmarkingStates(prev => ({ ...prev, [startupId]: false }));
     }
-  };
+  } catch (error) {
+    console.error('Error toggling bookmark:', error);
+    alert('Failed to update bookmark. Please try again.');
+  } finally {
+    setBookmarkingStates(prev => ({ ...prev, [startupId]: false }));
+  }
+};
 
   // Handle like toggle
   const handleLike = async (startupId, currentLikeState) => {
