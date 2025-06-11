@@ -70,36 +70,36 @@ const Startups = () => {
   };
 
   const handleBookmark = async (startupId, currentBookmarkState) => {
-  if (bookmarkingStates[startupId]) return; // Prevent double-clicking
-  
-  setBookmarkingStates(prev => ({ ...prev, [startupId]: true }));
-  
-  try {
-    const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
+    if (bookmarkingStates[startupId]) return; // Prevent double-clicking
     
-    // Check if the response indicates success
-    if (response.data.success !== false) {
-      // Update the startup in the local state immediately using the setter from useSearch
-      updateResults(startup => {
-        if (startup.id === startupId) {
-          return {
-            ...startup,
-            is_bookmarked: response.data.bookmarked,
-            total_bookmarks: response.data.total_bookmarks
-          };
-        }
-        return startup;
-      });
+    setBookmarkingStates(prev => ({ ...prev, [startupId]: true }));
+    
+    try {
+      const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/bookmark/`);
       
-      console.log('Bookmark toggled successfully:', response.data);
+      // Check if the response indicates success
+      if (response.data.success !== false) {
+        // Update the startup in the local state immediately using the setter from useSearch
+        updateResults(startup => {
+          if (startup.id === startupId) {
+            return {
+              ...startup,
+              is_bookmarked: response.data.bookmarked,
+              total_bookmarks: response.data.total_bookmarks
+            };
+          }
+          return startup;
+        });
+        
+        console.log('Bookmark toggled successfully:', response.data);
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      alert('Failed to update bookmark. Please try again.');
+    } finally {
+      setBookmarkingStates(prev => ({ ...prev, [startupId]: false }));
     }
-  } catch (error) {
-    console.error('Error toggling bookmark:', error);
-    alert('Failed to update bookmark. Please try again.');
-  } finally {
-    setBookmarkingStates(prev => ({ ...prev, [startupId]: false }));
-  }
-};
+  };
 
   // Handle like toggle
   const handleLike = async (startupId, currentLikeState) => {
@@ -111,23 +111,16 @@ const Startups = () => {
       const response = await axios.post(`http://localhost:8000/api/startups/${startupId}/like/`);
       
       // Update the startup in the local state immediately
-      const updatedStartups = startups.map(startup => {
+      updateResults(startup => {
         if (startup.id === startupId) {
           return {
             ...startup,
-            is_liked: !currentLikeState,
-            total_likes: currentLikeState 
-              ? startup.total_likes - 1 
-              : startup.total_likes + 1
+            is_liked: response.data.liked,
+            total_likes: response.data.total_likes
           };
         }
         return startup;
       });
-      
-      // Force a re-render
-      setTimeout(() => {
-        search(filters);
-      }, 100);
       
       console.log('Like toggled successfully:', response.data);
     } catch (error) {
