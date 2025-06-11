@@ -12,7 +12,7 @@ const useSearch = (endpoint, initialFilters = {}) => {
 
   // Debounced search function
   const search = useCallback(
-    debounce(async (searchFilters, page = 1) => {
+    debounce(async (searchFilters, page = 1, updateType = 'replace') => {
       setLoading(true);
       setError(null);
 
@@ -34,7 +34,7 @@ const useSearch = (endpoint, initialFilters = {}) => {
         
         const response = await axios.get(`${endpoint}?${params.toString()}`);
         
-        if (page === 1) {
+        if (page === 1 || updateType === 'replace') {
           setResults(response.data.results || []);
         } else {
           setResults(prev => [...prev, ...(response.data.results || [])]);
@@ -46,7 +46,9 @@ const useSearch = (endpoint, initialFilters = {}) => {
       } catch (err) {
         console.error('Search error:', err);
         setError(err.response?.data?.message || 'Search failed');
-        setResults([]);
+        if (page === 1 || updateType === 'replace') {
+          setResults([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -59,20 +61,20 @@ const useSearch = (endpoint, initialFilters = {}) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
     setCurrentPage(1);
-    search(updatedFilters, 1);
+    search(updatedFilters, 1, 'replace');
   }, [filters, search]);
 
   // Reset filters
   const resetFilters = useCallback(() => {
     setFilters(initialFilters);
     setCurrentPage(1);
-    search(initialFilters, 1);
+    search(initialFilters, 1, 'replace');
   }, [initialFilters, search]);
 
   // Load more results (pagination)
   const loadMore = useCallback(() => {
     if (hasNextPage && !loading) {
-      search(filters, currentPage + 1);
+      search(filters, currentPage + 1, 'append');
     }
   }, [filters, currentPage, hasNextPage, loading, search]);
 
@@ -83,9 +85,14 @@ const useSearch = (endpoint, initialFilters = {}) => {
     updateFilters(newFilters);
   }, [filters, updateFilters]);
 
+  // Add a method to update results without refetching
+  const updateResults = useCallback((updater) => {
+    setResults(prev => prev.map(updater));
+  }, []);
+
   // Initial search
   useEffect(() => {
-    search(filters, 1);
+    search(filters, 1, 'replace');
   }, []);
 
   return {
@@ -100,7 +107,8 @@ const useSearch = (endpoint, initialFilters = {}) => {
     resetFilters,
     removeFilter,
     loadMore,
-    search: (newFilters) => search(newFilters, 1)
+    search: (newFilters) => search(newFilters, 1, 'replace'),
+    updateResults  // Add this new method
   };
 };
 
@@ -118,3 +126,4 @@ function debounce(func, wait) {
 }
 
 export default useSearch;
+
