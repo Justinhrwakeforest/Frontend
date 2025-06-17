@@ -1,4 +1,4 @@
-// src/components/Profile.js - Enhanced Profile Component with all features
+// src/components/Profile.js - Professional modern UI
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -7,7 +7,7 @@ import {
   User, MapPin, Calendar, Edit, Save, X, 
   Star, Bookmark, MessageCircle, Heart,
   Building, Briefcase, Settings, Activity,
-  TrendingUp, Award, Target
+  TrendingUp, Award, Target, AlertCircle
 } from 'lucide-react';
 
 const Profile = () => {
@@ -136,7 +136,7 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your profile...</p>
         </div>
       </div>
@@ -147,11 +147,11 @@ const Profile = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-3xl font-bold">
+              <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span className="text-blue-600 text-2xl font-semibold">
                   {profile?.first_name?.charAt(0) || profile?.username?.charAt(0) || 'U'}
                 </span>
               </div>
@@ -164,14 +164,14 @@ const Profile = () => {
                         value={editData.first_name}
                         onChange={(e) => setEditData({...editData, first_name: e.target.value})}
                         placeholder="First Name"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <input
                         type="text"
                         value={editData.last_name}
                         onChange={(e) => setEditData({...editData, last_name: e.target.value})}
                         placeholder="Last Name"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <input
@@ -179,19 +179,19 @@ const Profile = () => {
                       value={editData.location}
                       onChange={(e) => setEditData({...editData, location: e.target.value})}
                       placeholder="Location"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <textarea
                       value={editData.bio}
                       onChange={(e) => setEditData({...editData, bio: e.target.value})}
                       placeholder="Bio"
                       rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 ) : (
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">
+                    <h1 className="text-xl font-semibold text-gray-900">
                       {profile?.first_name && profile?.last_name 
                         ? `${profile.first_name} ${profile.last_name}` 
                         : profile?.username}
@@ -251,26 +251,26 @@ const Profile = () => {
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6 pt-6 border-t border-gray-200">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{profile?.total_ratings || 0}</div>
+              <div className="text-xl font-semibold text-blue-600">{profile?.total_ratings || 0}</div>
               <div className="text-sm text-gray-600">Ratings Given</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{profile?.total_comments || 0}</div>
+              <div className="text-xl font-semibold text-green-600">{profile?.total_comments || 0}</div>
               <div className="text-sm text-gray-600">Comments</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{profile?.total_bookmarks || 0}</div>
+              <div className="text-xl font-semibold text-purple-600">{profile?.total_bookmarks || 0}</div>
               <div className="text-sm text-gray-600">Bookmarks</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{profile?.total_likes || 0}</div>
+              <div className="text-xl font-semibold text-red-600">{profile?.total_likes || 0}</div>
               <div className="text-sm text-gray-600">Likes</div>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white rounded-xl shadow-sm mb-8">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6 overflow-x-auto">
               {tabs.map((tab) => {
@@ -296,8 +296,8 @@ const Profile = () => {
           <div className="p-6">
             {/* Overview Tab */}
             {activeTab === 'overview' && (
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* About Section */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">About</h3>
@@ -333,7 +333,7 @@ const Profile = () => {
                           value={newInterest}
                           onChange={(e) => setNewInterest(e.target.value)}
                           placeholder="Add an interest..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <button
                           type="submit"
@@ -379,10 +379,10 @@ const Profile = () => {
                         <Link
                           key={index}
                           to={`/startups/${rating.startup_id}`}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                           <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{rating.startup_logo}</span>
+                            <span className="text-xl">{rating.startup_logo}</span>
                             <div>
                               <p className="font-medium text-gray-900">{rating.startup_name}</p>
                               <p className="text-sm text-gray-500">
@@ -415,10 +415,10 @@ const Profile = () => {
                         <Link
                           key={index}
                           to={`/startups/${comment.startup_id}`}
-                          className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                           <div className="flex items-center space-x-3 mb-2">
-                            <span className="text-xl">{comment.startup_logo}</span>
+                            <span className="text-lg">{comment.startup_logo}</span>
                             <div>
                               <p className="font-medium text-gray-900">{comment.startup_name}</p>
                               <p className="text-sm text-gray-500">
@@ -436,10 +436,10 @@ const Profile = () => {
                 {(!activity?.recent_ratings?.length && !activity?.recent_comments?.length) && (
                   <div className="text-center py-8">
                     <Activity className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">No recent activity found.</p>
+                    <p className="text-gray-600 mb-3">No recent activity found.</p>
                     <Link
                       to="/startups"
-                      className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Explore Startups
                     </Link>
@@ -457,19 +457,19 @@ const Profile = () => {
                 </div>
                 
                 {bookmarks.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {bookmarks.map((startup) => (
                       <div
                         key={startup.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{startup.logo}</span>
+                            <span className="text-xl">{startup.logo}</span>
                             <div>
                               <Link
                                 to={`/startups/${startup.id}`}
-                                className="font-semibold text-gray-900 hover:text-blue-600"
+                                className="font-medium text-gray-900 hover:text-blue-600"
                               >
                                 {startup.name}
                               </Link>
@@ -551,15 +551,15 @@ const Profile = () => {
                     <div className="space-y-3">
                       <label className="flex items-center justify-between">
                         <span className="text-gray-700">Show profile to other users</span>
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
+                        <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" defaultChecked />
                       </label>
                       <label className="flex items-center justify-between">
                         <span className="text-gray-700">Allow email notifications</span>
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
+                        <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" defaultChecked />
                       </label>
                       <label className="flex items-center justify-between">
                         <span className="text-gray-700">Show activity publicly</span>
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
+                        <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                       </label>
                     </div>
                   </div>
@@ -567,7 +567,7 @@ const Profile = () => {
                   {/* Danger Zone */}
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <h4 className="font-medium text-red-900 mb-3">Danger Zone</h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <button className="w-full text-left px-3 py-2 text-red-700 hover:bg-red-100 rounded-lg transition-colors">
                         Change Password
                       </button>
@@ -585,6 +585,16 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Custom CSS for line clamp */}
+      <style jsx>{`
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   );
 };
