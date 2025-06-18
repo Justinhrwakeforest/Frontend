@@ -1,4 +1,4 @@
-// src/components/Startups.js - Professional modern UI
+// src/components/Startups.js - Updated with submit startup button
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -11,7 +11,7 @@ import {
   Building, Zap, Globe, Award, ChevronRight, Target,
   Sparkles, ArrowUp, ArrowDown, Grid3X3, List, Search,
   SlidersHorizontal, RefreshCw, Flame, Rocket, Crown,
-  AlertCircle
+  AlertCircle, Plus, Upload
 } from 'lucide-react';
 
 const Startups = () => {
@@ -173,6 +173,23 @@ const Startups = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+        {/* Header with Submit Button */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Discover Startups</h1>
+            <p className="text-gray-600">Explore innovative companies and connect with the future</p>
+          </div>
+          
+          <div className="mt-6 md:mt-0">
+            <Link
+              to="/startups/new"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Submit Your Startup
+            </Link>
+          </div>
+        </div>
 
         {/* Search Bar */}
         <div className="mb-6">
@@ -609,7 +626,6 @@ const Startups = () => {
             </div>
           </div>
         )}
-
 
       </div>
 
