@@ -5,13 +5,13 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../services/api'; // Use the api service instead of axios directly
 import {
   Building, Upload, X, Plus, Trash2, Save, Eye, EyeOff,
-  MapPin, Calendar, Users, DollarSign, Globe, Briefcase,
+  Calendar, Users, DollarSign, Briefcase,
   Target, TrendingUp, Star, Award, AlertCircle, CheckCircle,
-  FileText, Image as ImageIcon, Link as LinkIcon, Tag
+  Image as ImageIcon, Tag
 } from 'lucide-react';
 
 const StartupUploadForm = () => {
-  const { user } = useContext(AuthContext);
+  const authContext = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [industries, setIndustries] = useState([]);
@@ -48,6 +48,20 @@ const StartupUploadForm = () => {
   useEffect(() => {
     fetchIndustries();
   }, []);
+
+  // Safety check for AuthContext - do this after all hooks are declared
+  if (!authContext) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-300 border-t-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { user } = authContext;
 
   const fetchIndustries = async () => {
     try {
@@ -854,3 +868,6 @@ const StartupUploadForm = () => {
       </div>
     </div>
   );
+};
+
+export default StartupUploadForm;
