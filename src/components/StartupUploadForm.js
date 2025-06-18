@@ -1,8 +1,8 @@
-// src/components/StartupUploadForm.js - Professional startup submission form
+// src/components/StartupUploadForm.js - Fixed with proper API calls
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../services/api'; // Use the api service instead of axios directly
 import {
   Building, Upload, X, Plus, Trash2, Save, Eye, EyeOff,
   MapPin, Calendar, Users, DollarSign, Globe, Briefcase,
@@ -51,10 +51,11 @@ const StartupUploadForm = () => {
 
   const fetchIndustries = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/startups/industries/');
+      const response = await api.get('/startups/industries/');
       setIndustries(response.data);
     } catch (error) {
       console.error('Error fetching industries:', error);
+      setErrors({ general: 'Failed to load industries. Please refresh the page.' });
     }
   };
 
@@ -146,7 +147,7 @@ const StartupUploadForm = () => {
 
   const isValidUrl = (string) => {
     try {
-      new URL(string);
+      new URL(string.startsWith('http') ? string : `https://${string}`);
       return true;
     } catch (_) {
       return false;
@@ -173,9 +174,23 @@ const StartupUploadForm = () => {
         tags: tags.filter(t => t.trim())
       };
 
-      const response = await axios.post('http://localhost:8000/api/startups/', submissionData);
+      // Remove empty fields to avoid validation errors
+      Object.keys(submissionData).forEach(key => {
+        if (submissionData[key] === '' && !['name', 'description', 'location'].includes(key)) {
+          delete submissionData[key];
+        }
+      });
+
+      console.log('Submitting data:', submissionData); // Debug log
+
+      const response = await api.post('/startups/', submissionData);
+      
+      console.log('Response:', response.data); // Debug log
       
       setSuccess(true);
+      
+      // Clear any saved draft
+      localStorage.removeItem('startup_draft');
       
       // Redirect to the new startup page after a short delay
       setTimeout(() => {
@@ -185,10 +200,16 @@ const StartupUploadForm = () => {
     } catch (error) {
       console.error('Error submitting startup:', error);
       
-      if (error.response?.data) {
-        setErrors(error.response.data);
+      if (error.response?.status === 401) {
+        setErrors({ general: 'Authentication required. Please log in and try again.' });
+      } else if (error.response?.data) {
+        // Handle validation errors from the backend
+        const backendErrors = error.response.data;
+        setErrors(backendErrors);
+      } else if (error.response?.status >= 500) {
+        setErrors({ general: 'Server error. Please try again later.' });
       } else {
-        setErrors({ general: 'Failed to submit startup. Please try again.' });
+        setErrors({ general: 'Failed to submit startup. Please check your connection and try again.' });
       }
     } finally {
       setLoading(false);
@@ -296,6 +317,16 @@ const StartupUploadForm = () => {
             />
           </div>
         </div>
+
+        {/* Error Messages */}
+        {errors.general && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+              <span className="text-red-700">{errors.general}</span>
+            </div>
+          </div>
+        )}
 
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -768,16 +799,6 @@ const StartupUploadForm = () => {
             </div>
           </div>
 
-          {/* Error Messages */}
-          {errors.general && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                <span className="text-red-700">{errors.general}</span>
-              </div>
-            </div>
-          )}
-
           {/* Form Actions */}
           <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
             <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
@@ -833,6 +854,3 @@ const StartupUploadForm = () => {
       </div>
     </div>
   );
-};
-
-export default StartupUploadForm;
