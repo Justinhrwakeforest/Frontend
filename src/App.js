@@ -1,4 +1,4 @@
-// src/App.js - Enhanced with notification system and error boundaries
+// src/App.js - Enhanced with startup upload route
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import Home from './components/Home';
 import Startups from './components/Startups';
 import StartupDetail from './components/StartupDetail';
+import StartupUploadForm from './components/StartupUploadForm';
 import Jobs from './components/Jobs';
 import Profile from './components/Profile';
 import Bookmarks from './components/Bookmarks';
@@ -126,6 +127,14 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute>
                   <Startups />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/startups/new" 
+              element={
+                <ProtectedRoute>
+                  <StartupUploadForm />
                 </ProtectedRoute>
               } 
             />
