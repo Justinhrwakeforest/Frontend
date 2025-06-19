@@ -1,6 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api'; // Use the api service instead of axios directly
 
 export const AuthContext = createContext();
 
@@ -9,10 +9,9 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('auth_token'));
   const [loading, setLoading] = useState(true);
 
-  // Set up axios defaults
+  // Fetch user data when token is available
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Token ${token}`;
       fetchUser();
     } else {
       setLoading(false);
@@ -21,11 +20,15 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/auth/profile/');
+      // Use the api service instead of axios directly
+      const response = await api.get('/auth/profile/');
       setUser(response.data);
     } catch (error) {
       console.error('Error fetching user:', error);
-      logout();
+      // Only logout if it's an auth error, not a network error
+      if (error.response?.status === 401) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -35,14 +38,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('auth_token', authToken);
     setToken(authToken);
     setUser(userData);
-    axios.defaults.headers.common['Authorization'] = `Token ${authToken}`;
   };
 
   const logout = () => {
     localStorage.removeItem('auth_token');
     setToken(null);
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
   };
 
   const value = {
@@ -51,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    isAuthenticated: !!token
+    isAuthenticated: !!token && !!user
   };
 
   return (
