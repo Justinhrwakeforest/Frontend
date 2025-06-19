@@ -1,4 +1,4 @@
-// src/App.js - Final working version with startup upload functionality
+// src/App.js - Updated for debugging StartupUploadForm issue
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -19,6 +19,31 @@ import Help from './components/Help';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
+
+// Test component to verify routing works
+const TestUploadForm = () => {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>🎉 Test Upload Form Works!</h1>
+      <p>If you see this, the routing is working perfectly.</p>
+      <p>This means the issue is specifically with the StartupUploadForm component.</p>
+      <div style={{ 
+        background: '#f0f8ff', 
+        padding: '15px', 
+        border: '1px solid #0066cc',
+        borderRadius: '5px',
+        marginTop: '20px'
+      }}>
+        <strong>Next steps:</strong>
+        <ol>
+          <li>Check browser console for JavaScript errors</li>
+          <li>Verify StartupUploadForm.js file exists and has correct syntax</li>
+          <li>Check for import/export issues</li>
+        </ol>
+      </div>
+    </div>
+  );
+};
 
 // Loading Component
 const LoadingScreen = () => (
@@ -65,7 +90,7 @@ const ErrorFallback = ({ error, resetError }) => (
       </div>
       {process.env.NODE_ENV === 'development' && (
         <details className="mt-4 text-left">
-          <summary className="text-sm text-gray-500 cursor-pointer">Error Details</summary>
+          <summary className="text-sm text-gray-500 cursor-pointer">Error Details (Development Only)</summary>
           <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
             {error?.stack || error?.message || 'Unknown error'}
           </pre>
@@ -92,6 +117,58 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/auth" />;
 };
 
+// DEBUG: Component wrapper to catch errors in StartupUploadForm specifically
+const StartupUploadFormWrapper = () => {
+  try {
+    return (
+      <div>
+        <div style={{ 
+          background: '#fff3cd', 
+          color: '#856404',
+          padding: '10px',
+          margin: '10px',
+          borderRadius: '5px',
+          border: '1px solid #ffeaa7'
+        }}>
+          <strong>DEBUG MODE:</strong> Loading StartupUploadForm...
+        </div>
+        <StartupUploadForm />
+      </div>
+    );
+  } catch (error) {
+    console.error('StartupUploadForm Error:', error);
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2 style={{ color: 'red' }}>StartupUploadForm Error Caught:</h2>
+        <pre style={{ 
+          background: '#f5f5f5', 
+          padding: '15px', 
+          borderRadius: '5px',
+          overflow: 'auto',
+          fontSize: '12px'
+        }}>
+          {error.toString()}
+          {error.stack && '\n\nStack trace:\n' + error.stack}
+        </pre>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '10px 20px',
+            background: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            marginTop: '10px',
+            cursor: 'pointer'
+          }}
+        >
+          Reload Page
+        </button>
+      </div>
+    );
+  }
+};
+
 // App Routes Component
 const AppRoutes = () => {
   const authContextValue = useContext(AuthContext);
@@ -112,119 +189,159 @@ const AppRoutes = () => {
         {/* Only show authenticated navbar when user is logged in and not on welcome page */}
         {isAuthenticated && <Navbar />}
         
-        <ErrorBoundary fallback={ErrorFallback}>
-          <Routes>
-            {/* Public welcome page - shows when not authenticated */}
-            <Route 
-              path="/welcome" 
-              element={!isAuthenticated ? <Home /> : <Navigate to="/" />} 
-            />
-            
-            {/* Auth route - redirects to dashboard if already authenticated */}
-            <Route 
-              path="/auth" 
-              element={!isAuthenticated ? <Auth /> : <Navigate to="/" />} 
-            />
-            
-            {/* Protected routes - require authentication */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
+        <Routes>
+          {/* Public welcome page - shows when not authenticated */}
+          <Route 
+            path="/welcome" 
+            element={!isAuthenticated ? <Home /> : <Navigate to="/" />} 
+          />
+          
+          {/* Auth route - redirects to dashboard if already authenticated */}
+          <Route 
+            path="/auth" 
+            element={!isAuthenticated ? <Auth /> : <Navigate to="/" />} 
+          />
+          
+          {/* Protected routes - require authentication */}
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/startups" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/startups" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Startups />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/startups/new" 
-              element={
-                <ProtectedRoute>
-                  <StartupUploadForm />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* DEBUG VERSION: Multiple options for startup upload form */}
+          <Route 
+            path="/startups/new" 
+            element={
+              <ProtectedRoute>
+                {/* OPTION 1: Test if routing works with simple component */}
+                {/* <TestUploadForm /> */}
+                
+                {/* OPTION 2: Try without ErrorBoundary to see raw errors */}
+                <StartupUploadForm />
+                
+                {/* OPTION 3: With ErrorBoundary (current setup) */}
+                {/* 
+                <ErrorBoundary fallback={ErrorFallback}>
+                  <StartupUploadFormWrapper />
+                </ErrorBoundary>
+                */}
+                
+                {/* OPTION 4: For extreme debugging - comment out all above and use this: */}
+                {/* 
+                <div style={{ padding: '20px' }}>
+                  <h1>Route Test</h1>
+                  <p>If you see this, routing works but StartupUploadForm has issues.</p>
+                </div>
+                */}
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/startups/:id" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/startups/:id" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <StartupDetail />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/jobs" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/jobs" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Jobs />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Profile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/bookmarks" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/bookmarks" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Bookmarks />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Settings />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/activity" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/activity" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Activity />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/help" 
-              element={
-                <ProtectedRoute>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/help" 
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary fallback={ErrorFallback}>
                   <Help />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Catch-all redirect */}
-            <Route 
-              path="*" 
-              element={
-                isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/welcome" replace />
-              } 
-            />
-          </Routes>
-        </ErrorBoundary>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Catch-all redirect */}
+          <Route 
+            path="*" 
+            element={
+              isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/welcome" replace />
+            } 
+          />
+        </Routes>
       </div>
     </Router>
   );
