@@ -1,4 +1,4 @@
-// src/components/StartupUploadForm.js - Fixed Incremental Version
+// src/components/StartupUploadForm.js - Enhanced Design with All Features
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -20,7 +20,7 @@ const StartupUploadForm = () => {
   const [success, setSuccess] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
-  // Form data state - keeping original structure + essential additions
+  // Form data state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,27 +37,26 @@ const StartupUploadForm = () => {
     growth_rate: '',
     cover_image_url: '',
     is_featured: false,
-    // New essential fields
+    // Additional fields
     contact_email: '',
     contact_phone: '',
     business_model: '',
     target_market: ''
   });
 
-  // Dynamic arrays - keeping original + minimal additions
+  // Dynamic arrays
   const [founders, setFounders] = useState([
     { name: '', title: 'Founder', bio: '', linkedin: '' }
   ]);
   const [tags, setTags] = useState(['']);
   
-  // New essential additions
+  // Social media links
   const [socialMedia, setSocialMedia] = useState({
     twitter: '',
     linkedin: '',
     github: ''
   });
 
-  // Load industries on component mount
   useEffect(() => {
     fetchIndustries();
   }, []);
@@ -79,9 +78,12 @@ const StartupUploadForm = () => {
   const fetchIndustries = async () => {
     try {
       const response = await api.get('/startups/industries/');
-      setIndustries(response.data);
+      const industriesData = Array.isArray(response.data) ? response.data : [];
+      setIndustries(industriesData);
+      console.log('Industries loaded:', industriesData);
     } catch (error) {
       console.error('Error fetching industries:', error);
+      setIndustries([]);
       setErrors({ general: 'Failed to load industries. Please refresh the page.' });
     }
   };
@@ -201,14 +203,16 @@ const StartupUploadForm = () => {
         ...formData,
         employee_count: parseInt(formData.employee_count),
         founded_year: parseInt(formData.founded_year),
+        industry: parseInt(formData.industry),
         founders: founders.filter(f => f.name.trim()),
         tags: tags.filter(t => t.trim()),
         social_media: socialMedia
       };
 
-      // Remove empty fields to avoid validation errors
+      // Remove empty optional fields
       Object.keys(submissionData).forEach(key => {
-        if (submissionData[key] === '' && !['name', 'description', 'location'].includes(key)) {
+        if (submissionData[key] === '' && 
+            !['name', 'description', 'location', 'industry', 'employee_count', 'founded_year'].includes(key)) {
           delete submissionData[key];
         }
       });
@@ -226,7 +230,13 @@ const StartupUploadForm = () => {
       
       // Redirect to the new startup page after a short delay
       setTimeout(() => {
-        navigate(`/startups/${response.data.id}`);
+        if (response.data.startup && response.data.startup.id) {
+          navigate(`/startups/${response.data.startup.id}`);
+        } else if (response.data.id) {
+          navigate(`/startups/${response.data.id}`);
+        } else {
+          navigate('/startups');
+        }
       }, 2000);
 
     } catch (error) {
@@ -235,9 +245,7 @@ const StartupUploadForm = () => {
       if (error.response?.status === 401) {
         setErrors({ general: 'Authentication required. Please log in and try again.' });
       } else if (error.response?.data) {
-        // Handle validation errors from the backend
-        const backendErrors = error.response.data;
-        setErrors(backendErrors);
+        setErrors(error.response.data);
       } else if (error.response?.status >= 500) {
         setErrors({ general: 'Server error. Please try again later.' });
       } else {
@@ -248,8 +256,7 @@ const StartupUploadForm = () => {
     }
   };
 
-  const handleSaveDraft = async () => {
-    // Save to localStorage as draft
+  const handleSaveDraft = () => {
     const draftData = {
       formData,
       founders,
@@ -392,11 +399,12 @@ const StartupUploadForm = () => {
                   }`}
                   placeholder="Enter your company name"
                   maxLength={100}
+                  required
                 />
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.name}
+                    {Array.isArray(errors.name) ? errors.name.join(', ') : errors.name}
                   </p>
                 )}
               </div>
@@ -434,9 +442,10 @@ const StartupUploadForm = () => {
                   className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                     errors.industry ? 'border-red-300' : 'border-gray-300'
                   }`}
+                  required
                 >
                   <option value="">Select an industry</option>
-                  {industries.map(industry => (
+                  {Array.isArray(industries) && industries.map(industry => (
                     <option key={industry.id} value={industry.id}>
                       {industry.icon} {industry.name}
                     </option>
@@ -445,7 +454,7 @@ const StartupUploadForm = () => {
                 {errors.industry && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.industry}
+                    {Array.isArray(errors.industry) ? errors.industry.join(', ') : errors.industry}
                   </p>
                 )}
               </div>
@@ -464,11 +473,12 @@ const StartupUploadForm = () => {
                     errors.location ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="e.g., San Francisco, CA"
+                  required
                 />
                 {errors.location && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.location}
+                    {Array.isArray(errors.location) ? errors.location.join(', ') : errors.location}
                   </p>
                 )}
               </div>
@@ -491,7 +501,7 @@ const StartupUploadForm = () => {
                 {errors.website && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.website}
+                    {Array.isArray(errors.website) ? errors.website.join(', ') : errors.website}
                   </p>
                 )}
               </div>
@@ -511,11 +521,12 @@ const StartupUploadForm = () => {
                   }`}
                   placeholder="Describe your startup, what problem you solve, and what makes you unique..."
                   maxLength={2000}
+                  required
                 />
                 {errors.description && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.description}
+                    {Array.isArray(errors.description) ? errors.description.join(', ') : errors.description}
                   </p>
                 )}
               </div>
@@ -532,7 +543,7 @@ const StartupUploadForm = () => {
                   value={formData.cover_image_url}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://..."
+                  placeholder="https://example.com/your-cover-image.jpg"
                 />
                 <p className="mt-1 text-sm text-gray-500">
                   Recommended size: 1200x400px. This will be displayed as a banner on your startup page.
@@ -566,11 +577,12 @@ const StartupUploadForm = () => {
                   placeholder="e.g., 25"
                   min="1"
                   max="100000"
+                  required
                 />
                 {errors.employee_count && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.employee_count}
+                    {Array.isArray(errors.employee_count) ? errors.employee_count.join(', ') : errors.employee_count}
                   </p>
                 )}
               </div>
@@ -591,11 +603,12 @@ const StartupUploadForm = () => {
                   }`}
                   min="1800"
                   max={new Date().getFullYear()}
+                  required
                 />
                 {errors.founded_year && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.founded_year}
+                    {Array.isArray(errors.founded_year) ? errors.founded_year.join(', ') : errors.founded_year}
                   </p>
                 )}
               </div>
@@ -613,6 +626,22 @@ const StartupUploadForm = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., $2M Seed, $10M Series A"
+                />
+              </div>
+
+              {/* Valuation */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <TrendingUp className="w-4 h-4 inline mr-1" />
+                  Valuation
+                </label>
+                <input
+                  type="text"
+                  name="valuation"
+                  value={formData.valuation}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., $50M"
                 />
               </div>
 
@@ -811,7 +840,7 @@ const StartupUploadForm = () => {
             {errors.founders && (
               <p className="mb-4 text-sm text-red-600 flex items-center">
                 <AlertCircle className="w-4 h-4 mr-1" />
-                {errors.founders}
+                {Array.isArray(errors.founders) ? errors.founders.join(', ') : errors.founders}
               </p>
             )}
 
@@ -880,6 +909,7 @@ const StartupUploadForm = () => {
                         rows={3}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Brief bio and background..."
+                        maxLength={500}
                       />
                     </div>
                   </div>
@@ -933,6 +963,13 @@ const StartupUploadForm = () => {
                 </div>
               ))}
             </div>
+            
+            {errors.tags && (
+              <p className="mt-4 text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {Array.isArray(errors.tags) ? errors.tags.join(', ') : errors.tags}
+              </p>
+            )}
           </div>
 
           {/* Featured Checkbox */}
