@@ -1,4 +1,4 @@
-// src/components/StartupDetail.js - Clean Professional Version
+// src/components/StartupDetail.js - Fixed Rating Visibility
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from 'axios';
@@ -268,10 +268,10 @@ export default function StartupDetail() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Professional Startup Header with Cover Image */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden mb-8">
+        {/* Professional Startup Header with Cover Image - Fixed Rating Position */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 mb-8">
           {/* Enhanced Header Background with Cover Image */}
-          <div className="h-64 relative overflow-hidden">
+          <div className="h-64 relative overflow-hidden rounded-t-2xl">
             {startup.cover_image_url ? (
               <div className="relative h-full">
                 <img 
@@ -319,52 +319,6 @@ export default function StartupDetail() {
                         <p className="text-white/95 text-lg leading-relaxed drop-shadow max-w-4xl">{startup.description}</p>
                       </div>
                     </div>
-                    
-                    <div className="ml-8 flex-shrink-0">
-                      <div className="bg-white/95 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-lg min-w-[280px]">
-                        <div className="text-center mb-6">
-                          <div className="flex items-baseline justify-center space-x-1 mb-3">
-                            <div className="text-4xl font-bold text-slate-900">
-                              {startup.average_rating?.toFixed(1) || '3.0'}
-                            </div>
-                            <div className="text-lg text-slate-500 font-medium">/5.0</div>
-                          </div>
-                          <div className="flex justify-center mb-3">
-                            <StarRating rating={Math.round(startup.average_rating || 3)} />
-                          </div>
-                          <div className="text-sm text-slate-600 font-medium">
-                            {startup.total_ratings || 1} {(startup.total_ratings === 1) ? 'review' : 'reviews'}
-                          </div>
-                        </div>
-
-                        <div className="border-t border-slate-200 pt-6 mb-6">
-                          <div className="text-sm font-semibold text-slate-700 mb-4 text-center">Rate this startup</div>
-                          <div className="flex justify-center">
-                            <StarRating 
-                              rating={userRating} 
-                              onRate={handleRate}
-                              interactive={true}
-                            />
-                          </div>
-                          {userRating > 0 && (
-                            <div className="text-center mt-2">
-                              <span className="text-xs text-slate-500">You rated: {userRating}/5</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {startup.website && (
-                          <a
-                            href={startup.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
-                          >
-                            <Globe className="w-4 h-4 mr-2" /> Visit Website
-                          </a>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -376,10 +330,59 @@ export default function StartupDetail() {
             )}
           </div>
           
+          {/* Content area with proper spacing for rating card */}
           <div className="px-8 pb-8 relative">
-            {!startup.cover_image_url && (
-              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between -mt-16">
-                <div className="flex items-end space-x-6 mb-6 lg:mb-0">
+            {/* Rating Card - positioned to extend outside content area */}
+            <div className="absolute top-0 right-8 transform -translate-y-1/2 z-10">
+              <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-lg min-w-[280px]">
+                <div className="text-center mb-6">
+                  <div className="flex items-baseline justify-center space-x-1 mb-3">
+                    <div className="text-4xl font-bold text-slate-900">
+                      {startup.average_rating?.toFixed(1) || '3.0'}
+                    </div>
+                    <div className="text-lg text-slate-500 font-medium">/5.0</div>
+                  </div>
+                  <div className="flex justify-center mb-3">
+                    <StarRating rating={Math.round(startup.average_rating || 3)} />
+                  </div>
+                  <div className="text-sm text-slate-600 font-medium">
+                    {startup.total_ratings || 1} {(startup.total_ratings === 1) ? 'review' : 'reviews'}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 pt-6 mb-6">
+                  <div className="text-sm font-semibold text-slate-700 mb-4 text-center">Rate this startup</div>
+                  <div className="flex justify-center">
+                    <StarRating 
+                      rating={userRating} 
+                      onRate={handleRate}
+                      interactive={true}
+                    />
+                  </div>
+                  {userRating > 0 && (
+                    <div className="text-center mt-2">
+                      <span className="text-xs text-slate-500">You rated: {userRating}/5</span>
+                    </div>
+                  )}
+                </div>
+
+                {startup.website && (
+                  <a
+                    href={startup.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <Globe className="w-4 h-4 mr-2" /> Visit Website
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Main content with proper margin for rating card */}
+            <div className="pt-16 lg:pr-72">
+              {!startup.cover_image_url && (
+                <div className="flex items-end space-x-6 mb-6">
                   <div className="flex-shrink-0 w-24 h-24 bg-white rounded-2xl shadow-lg border-4 border-white flex items-center justify-center text-4xl font-bold relative">
                     {startup.logo}
                     {startup.is_featured && (
@@ -389,7 +392,7 @@ export default function StartupDetail() {
                     )}
                   </div>
                   
-                  <div className="flex-1 pt-4">
+                  <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-3">
                       <h1 className="text-3xl font-bold text-slate-900">{startup.name}</h1>
                       {startup.is_featured && (
@@ -411,87 +414,43 @@ export default function StartupDetail() {
                       </div>
                     </div>
 
-                    <p className="text-slate-700 text-lg leading-relaxed max-w-4xl">{startup.description}</p>
+                    <p className="text-slate-700 text-lg leading-relaxed">{startup.description}</p>
                   </div>
                 </div>
+              )}
 
-                <div className="lg:ml-8 lg:flex-shrink-0 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-6 shadow-sm min-w-[280px]">
-                  <div className="text-center mb-6">
-                    <div className="flex items-baseline justify-center space-x-1 mb-3">
-                      <div className="text-4xl font-bold text-slate-900">
-                        {startup.average_rating?.toFixed(1) || 'N/A'}
-                      </div>
-                      <div className="text-lg text-slate-500 font-medium">/5.0</div>
-                    </div>
-                    <div className="flex justify-center mb-3">
-                      <StarRating rating={Math.round(startup.average_rating || 0)} />
-                    </div>
-                    <div className="text-sm text-slate-600 font-medium">
-                      {startup.total_ratings} {startup.total_ratings === 1 ? 'review' : 'reviews'}
-                    </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8 pt-8 border-t border-slate-200">
+                <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Users className="w-6 h-6 text-blue-600" />
                   </div>
-
-                  <div className="border-t border-slate-200 pt-6 mb-6">
-                    <div className="text-sm font-semibold text-slate-700 mb-4 text-center">Rate this startup</div>
-                    <div className="flex justify-center">
-                      <StarRating 
-                        rating={userRating} 
-                        onRate={handleRate}
-                        interactive={true}
-                      />
-                    </div>
-                    {userRating > 0 && (
-                      <div className="text-center mt-2">
-                        <span className="text-xs text-slate-500">You rated: {userRating}/5</span>
-                      </div>
-                    )}
+                  <div className="text-2xl font-bold text-slate-900 mb-1">{startup.employee_count || '10+'}</div>
+                  <div className="text-sm text-slate-600 font-medium">Employees</div>
+                </div>
+                
+                <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Building className="w-6 h-6 text-purple-600" />
                   </div>
-
-                  {startup.website && (
-                    <a
-                      href={startup.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
-                    >
-                      <Globe className="w-4 h-4 mr-2" /> Visit Website
-                    </a>
-                  )}
+                  <div className="text-2xl font-bold text-slate-900 mb-1">{startup.founded_year || '2020'}</div>
+                  <div className="text-sm text-slate-600 font-medium">Founded</div>
                 </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8 pt-8 border-t border-slate-200">
-              <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-blue-600" />
+                
+                <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <DollarSign className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-green-600 mb-1">{startup.funding_amount || 'Seed'}</div>
+                  <div className="text-sm text-slate-600 font-medium">Funding</div>
                 </div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">{startup.employee_count || '10+'}</div>
-                <div className="text-sm text-slate-600 font-medium">Employees</div>
-              </div>
-              
-              <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Building className="w-6 h-6 text-purple-600" />
+                
+                <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Target className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-amber-600 mb-1">{startup.valuation || startup.views || '1K+'}</div>
+                  <div className="text-sm text-slate-600 font-medium">{startup.valuation ? 'Valuation' : 'Views'}</div>
                 </div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">{startup.founded_year || '2020'}</div>
-                <div className="text-sm text-slate-600 font-medium">Founded</div>
-              </div>
-              
-              <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <DollarSign className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="text-2xl font-bold text-green-600 mb-1">{startup.funding_amount || 'Seed'}</div>
-                <div className="text-sm text-slate-600 font-medium">Funding</div>
-              </div>
-              
-              <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Target className="w-6 h-6 text-amber-600" />
-                </div>
-                <div className="text-2xl font-bold text-amber-600 mb-1">{startup.valuation || startup.views || '1K+'}</div>
-                <div className="text-sm text-slate-600 font-medium">{startup.valuation ? 'Valuation' : 'Views'}</div>
               </div>
             </div>
           </div>
