@@ -1,13 +1,14 @@
-// src/components/StartupUploadForm.js - Fixed with proper API calls
+// src/components/StartupUploadForm.js - Fixed Incremental Version
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import api from '../services/api'; // Use the api service instead of axios directly
+import api from '../services/api';
 import {
   Building, Upload, X, Plus, Trash2, Save, Eye, EyeOff,
   Calendar, Users, DollarSign, Briefcase,
   Target, TrendingUp, Star, Award, AlertCircle, CheckCircle,
-  Image as ImageIcon, Tag
+  Image as ImageIcon, Tag, Globe, Mail, Phone,
+  Twitter, Linkedin, Github
 } from 'lucide-react';
 
 const StartupUploadForm = () => {
@@ -19,7 +20,7 @@ const StartupUploadForm = () => {
   const [success, setSuccess] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
-  // Form data state
+  // Form data state - keeping original structure + essential additions
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -35,21 +36,33 @@ const StartupUploadForm = () => {
     user_count: '',
     growth_rate: '',
     cover_image_url: '',
-    is_featured: false
+    is_featured: false,
+    // New essential fields
+    contact_email: '',
+    contact_phone: '',
+    business_model: '',
+    target_market: ''
   });
 
-  // Dynamic arrays for founders and tags
+  // Dynamic arrays - keeping original + minimal additions
   const [founders, setFounders] = useState([
-    { name: '', title: 'Founder', bio: '' }
+    { name: '', title: 'Founder', bio: '', linkedin: '' }
   ]);
   const [tags, setTags] = useState(['']);
+  
+  // New essential additions
+  const [socialMedia, setSocialMedia] = useState({
+    twitter: '',
+    linkedin: '',
+    github: ''
+  });
 
   // Load industries on component mount
   useEffect(() => {
     fetchIndustries();
   }, []);
 
-  // Safety check for AuthContext - do this after all hooks are declared
+  // Safety check for AuthContext
   if (!authContext) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
@@ -86,6 +99,10 @@ const StartupUploadForm = () => {
     }
   };
 
+  const handleSocialMediaChange = (platform, value) => {
+    setSocialMedia(prev => ({ ...prev, [platform]: value }));
+  };
+
   const handleFounderChange = (index, field, value) => {
     setFounders(prev => prev.map((founder, i) => 
       i === index ? { ...founder, [field]: value } : founder
@@ -94,7 +111,7 @@ const StartupUploadForm = () => {
 
   const addFounder = () => {
     if (founders.length < 5) {
-      setFounders(prev => [...prev, { name: '', title: 'Co-Founder', bio: '' }]);
+      setFounders(prev => [...prev, { name: '', title: 'Co-Founder', bio: '', linkedin: '' }]);
     }
   };
 
@@ -185,7 +202,8 @@ const StartupUploadForm = () => {
         employee_count: parseInt(formData.employee_count),
         founded_year: parseInt(formData.founded_year),
         founders: founders.filter(f => f.name.trim()),
-        tags: tags.filter(t => t.trim())
+        tags: tags.filter(t => t.trim()),
+        social_media: socialMedia
       };
 
       // Remove empty fields to avoid validation errors
@@ -195,11 +213,11 @@ const StartupUploadForm = () => {
         }
       });
 
-      console.log('Submitting data:', submissionData); // Debug log
+      console.log('Submitting data:', submissionData);
 
       const response = await api.post('/startups/', submissionData);
       
-      console.log('Response:', response.data); // Debug log
+      console.log('Response:', response.data);
       
       setSuccess(true);
       
@@ -236,6 +254,7 @@ const StartupUploadForm = () => {
       formData,
       founders,
       tags,
+      socialMedia,
       savedAt: new Date().toISOString()
     };
     
@@ -246,11 +265,17 @@ const StartupUploadForm = () => {
   const loadDraft = () => {
     const draft = localStorage.getItem('startup_draft');
     if (draft) {
-      const draftData = JSON.parse(draft);
-      setFormData(draftData.formData);
-      setFounders(draftData.founders);
-      setTags(draftData.tags);
-      alert('Draft loaded successfully!');
+      try {
+        const draftData = JSON.parse(draft);
+        setFormData(draftData.formData || formData);
+        setFounders(draftData.founders || founders);
+        setTags(draftData.tags || tags);
+        setSocialMedia(draftData.socialMedia || socialMedia);
+        alert('Draft loaded successfully!');
+      } catch (error) {
+        console.error('Error loading draft:', error);
+        alert('Failed to load draft');
+      }
     }
   };
 
@@ -494,6 +519,25 @@ const StartupUploadForm = () => {
                   </p>
                 )}
               </div>
+
+              {/* Cover Image URL */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <ImageIcon className="w-4 h-4 inline mr-1" />
+                  Cover Image URL
+                </label>
+                <input
+                  type="url"
+                  name="cover_image_url"
+                  value={formData.cover_image_url}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://..."
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Recommended size: 1200x400px. This will be displayed as a banner on your startup page.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -572,22 +616,6 @@ const StartupUploadForm = () => {
                 />
               </div>
 
-              {/* Valuation */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <TrendingUp className="w-4 h-4 inline mr-1" />
-                  Valuation
-                </label>
-                <input
-                  type="text"
-                  name="valuation"
-                  value={formData.valuation}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., $50M"
-                />
-              </div>
-
               {/* Revenue */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -621,7 +649,7 @@ const StartupUploadForm = () => {
               </div>
 
               {/* Growth Rate */}
-              <div className="lg:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <TrendingUp className="w-4 h-4 inline mr-1" />
                   Growth Rate
@@ -636,19 +664,127 @@ const StartupUploadForm = () => {
                 />
               </div>
 
-              {/* Cover Image URL */}
+              {/* Business Model */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <ImageIcon className="w-4 h-4 inline mr-1" />
-                  Cover Image URL
+                  Business Model
+                </label>
+                <select
+                  name="business_model"
+                  value={formData.business_model}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select business model</option>
+                  <option value="saas">SaaS</option>
+                  <option value="marketplace">Marketplace</option>
+                  <option value="ecommerce">E-commerce</option>
+                  <option value="subscription">Subscription</option>
+                  <option value="freemium">Freemium</option>
+                  <option value="advertising">Advertising</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Target Market */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target Market
+                </label>
+                <input
+                  type="text"
+                  name="target_market"
+                  value={formData.target_market}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Small businesses, Enterprise"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact & Social */}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <Globe className="w-5 h-5 mr-2 text-blue-600" />
+              Contact & Social Media
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Contact Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Mail className="w-4 h-4 inline mr-1" />
+                  Contact Email
+                </label>
+                <input
+                  type="email"
+                  name="contact_email"
+                  value={formData.contact_email}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="contact@yourcompany.com"
+                />
+              </div>
+
+              {/* Contact Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Phone className="w-4 h-4 inline mr-1" />
+                  Contact Phone
+                </label>
+                <input
+                  type="tel"
+                  name="contact_phone"
+                  value={formData.contact_phone}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Twitter className="w-4 h-4 inline mr-1 text-blue-500" />
+                  Twitter
                 </label>
                 <input
                   type="url"
-                  name="cover_image_url"
-                  value={formData.cover_image_url}
-                  onChange={handleInputChange}
+                  value={socialMedia.twitter}
+                  onChange={(e) => handleSocialMediaChange('twitter', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://..."
+                  placeholder="https://twitter.com/yourcompany"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Linkedin className="w-4 h-4 inline mr-1 text-blue-700" />
+                  LinkedIn
+                </label>
+                <input
+                  type="url"
+                  value={socialMedia.linkedin}
+                  onChange={(e) => handleSocialMediaChange('linkedin', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://linkedin.com/company/yourcompany"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Github className="w-4 h-4 inline mr-1 text-gray-800" />
+                  GitHub
+                </label>
+                <input
+                  type="url"
+                  value={socialMedia.github}
+                  onChange={(e) => handleSocialMediaChange('github', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://github.com/yourcompany"
                 />
               </div>
             </div>
@@ -718,6 +854,21 @@ const StartupUploadForm = () => {
                         placeholder="e.g., CEO, CTO"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        LinkedIn
+                      </label>
+                      <input
+                        type="url"
+                        value={founder.linkedin}
+                        onChange={(e) => handleFounderChange(index, 'linkedin', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="https://linkedin.com/in/..."
+                      />
+                    </div>
+
+                    <div></div>
                     
                     <div className="lg:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
