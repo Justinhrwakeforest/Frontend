@@ -1,7 +1,7 @@
-// src/components/StartupDetail.js - Fixed Rating Visibility
+// src/components/StartupDetail.js - Fixed with correct API calls and error handling
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import axios from 'axios';
+import api from '../services/api'; // Use the configured api instance
 import { 
   ChevronLeft, MapPin, Users, Star, DollarSign, TrendingUp, 
   Briefcase, ExternalLink, Heart, Bookmark, MessageCircle, 
@@ -20,6 +20,7 @@ export default function StartupDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [submittingAction, setSubmittingAction] = useState(false);
+  const [error, setError] = useState(null);
   
   useEffect(() => {
     if (id) {
@@ -29,8 +30,10 @@ export default function StartupDetail() {
 
   const fetchStartupDetail = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await axios.get(`http://localhost:8000/api/startups/${id}/`);
+      // Use the configured api instance instead of axios directly
+      const response = await api.get(`/startups/${id}/`);
       const startupData = response.data;
       
       setStartup(startupData);
@@ -41,6 +44,7 @@ export default function StartupDetail() {
       console.log('Startup data loaded:', startupData);
     } catch (error) {
       console.error('Error fetching startup detail:', error);
+      setError('Failed to load startup details');
       if (error.response?.status === 404) {
         navigate('/startups');
       }
@@ -49,12 +53,30 @@ export default function StartupDetail() {
     }
   };
 
+  const showErrorMessage = (message) => {
+    setError(message);
+    setTimeout(() => setError(null), 5000); // Clear error after 5 seconds
+  };
+
+  const showSuccessMessage = (message) => {
+    // You can implement a success toast here
+    console.log('Success:', message);
+  };
+
   const handleRate = async (rating) => {
     if (submittingAction) return;
     
     setSubmittingAction(true);
     try {
-      const response = await axios.post(`http://localhost:8000/api/startups/${id}/rate/`, {
+      // Check if user is authenticated
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        showErrorMessage('Please log in to rate this startup');
+        navigate('/auth');
+        return;
+      }
+
+      const response = await api.post(`/startups/${id}/rate/`, {
         rating: rating
       });
       
@@ -65,10 +87,16 @@ export default function StartupDetail() {
         total_ratings: response.data.total_ratings
       }));
       
+      showSuccessMessage('Rating submitted successfully!');
       console.log('Rating submitted successfully:', response.data);
     } catch (error) {
       console.error('Error submitting rating:', error);
-      alert('Failed to submit rating. Please try again.');
+      if (error.response?.status === 401) {
+        showErrorMessage('Please log in to rate this startup');
+        navigate('/auth');
+      } else {
+        showErrorMessage(error.response?.data?.error || 'Failed to submit rating. Please try again.');
+      }
     } finally {
       setSubmittingAction(false);
     }
@@ -79,7 +107,15 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      const response = await axios.post(`http://localhost:8000/api/startups/${id}/like/`);
+      // Check if user is authenticated
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        showErrorMessage('Please log in to like this startup');
+        navigate('/auth');
+        return;
+      }
+
+      const response = await api.post(`/startups/${id}/like/`);
       
       setIsLiked(response.data.liked);
       setStartup(prev => ({
@@ -87,10 +123,16 @@ export default function StartupDetail() {
         total_likes: response.data.total_likes
       }));
       
+      showSuccessMessage(response.data.message);
       console.log('Like toggled successfully:', response.data);
     } catch (error) {
       console.error('Error toggling like:', error);
-      alert('Failed to update like. Please try again.');
+      if (error.response?.status === 401) {
+        showErrorMessage('Please log in to like this startup');
+        navigate('/auth');
+      } else {
+        showErrorMessage(error.response?.data?.error || 'Failed to update like. Please try again.');
+      }
     } finally {
       setSubmittingAction(false);
     }
@@ -101,7 +143,15 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      const response = await axios.post(`http://localhost:8000/api/startups/${id}/bookmark/`);
+      // Check if user is authenticated
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        showErrorMessage('Please log in to bookmark this startup');
+        navigate('/auth');
+        return;
+      }
+
+      const response = await api.post(`/startups/${id}/bookmark/`);
       
       setIsBookmarked(response.data.bookmarked);
       setStartup(prev => ({
@@ -109,10 +159,16 @@ export default function StartupDetail() {
         total_bookmarks: response.data.total_bookmarks
       }));
       
+      showSuccessMessage(response.data.message);
       console.log('Bookmark toggled successfully:', response.data);
     } catch (error) {
       console.error('Error toggling bookmark:', error);
-      alert('Failed to update bookmark. Please try again.');
+      if (error.response?.status === 401) {
+        showErrorMessage('Please log in to bookmark this startup');
+        navigate('/auth');
+      } else {
+        showErrorMessage(error.response?.data?.error || 'Failed to update bookmark. Please try again.');
+      }
     } finally {
       setSubmittingAction(false);
     }
@@ -124,7 +180,15 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      const response = await axios.post(`http://localhost:8000/api/startups/${id}/comment/`, {
+      // Check if user is authenticated
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        showErrorMessage('Please log in to comment');
+        navigate('/auth');
+        return;
+      }
+
+      const response = await api.post(`/startups/${id}/comment/`, {
         text: comment
       });
       
@@ -135,10 +199,16 @@ export default function StartupDetail() {
       }));
       
       setComment('');
+      showSuccessMessage('Comment posted successfully!');
       console.log('Comment submitted successfully:', response.data);
     } catch (error) {
       console.error('Error submitting comment:', error);
-      alert('Failed to submit comment. Please try again.');
+      if (error.response?.status === 401) {
+        showErrorMessage('Please log in to comment');
+        navigate('/auth');
+      } else {
+        showErrorMessage(error.response?.data?.error || 'Failed to submit comment. Please try again.');
+      }
     } finally {
       setSubmittingAction(false);
     }
@@ -219,6 +289,18 @@ export default function StartupDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      {/* Error Message Toast */}
+      {error && (
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            {error}
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Header */}
       <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-slate-200/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -239,10 +321,10 @@ export default function StartupDetail() {
                   isBookmarked
                     ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
                     : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
-                }`}
+                } ${submittingAction ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? 'fill-blue-700' : ''}`} />
-                {isBookmarked ? 'Saved' : 'Save'}
+                {submittingAction ? 'Saving...' : (isBookmarked ? 'Saved' : 'Save')}
               </button>
               
               <button
@@ -252,7 +334,7 @@ export default function StartupDetail() {
                   isLiked
                     ? 'bg-red-50 border-red-200 text-red-700 shadow-sm'
                     : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
-                }`}
+                } ${submittingAction ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Heart className={`w-4 h-4 mr-2 ${isLiked ? 'fill-red-700' : ''}`} />
                 <span>{startup.total_likes || 0}</span>
@@ -338,15 +420,15 @@ export default function StartupDetail() {
                 <div className="text-center mb-6">
                   <div className="flex items-baseline justify-center space-x-1 mb-3">
                     <div className="text-4xl font-bold text-slate-900">
-                      {startup.average_rating?.toFixed(1) || '3.0'}
+                      {startup.average_rating?.toFixed(1) || '0.0'}
                     </div>
                     <div className="text-lg text-slate-500 font-medium">/5.0</div>
                   </div>
                   <div className="flex justify-center mb-3">
-                    <StarRating rating={Math.round(startup.average_rating || 3)} />
+                    <StarRating rating={Math.round(startup.average_rating || 0)} />
                   </div>
                   <div className="text-sm text-slate-600 font-medium">
-                    {startup.total_ratings || 1} {(startup.total_ratings === 1) ? 'review' : 'reviews'}
+                    {startup.total_ratings || 0} {(startup.total_ratings === 1) ? 'review' : 'reviews'}
                   </div>
                 </div>
 
@@ -738,9 +820,48 @@ export default function StartupDetail() {
                       <TrendingUp className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-3xl font-bold text-amber-600 mb-1">{startup.views || 0}</div>
-                    <div className="text-sm text-slate-600 font-semibold">Views</div>
+                    <div className="text-sm text-slate-600 font-medium">Views</div>
                   </div>
                 </div>
+
+                {/* Recent Activity Section */}
+                {startup.engagement_metrics && (
+                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <h4 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity (30 Days)</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{startup.engagement_metrics.recent_ratings}</div>
+                        <div className="text-sm text-slate-600">New Ratings</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">{startup.engagement_metrics.recent_comments}</div>
+                        <div className="text-sm text-slate-600">New Comments</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-600">{startup.engagement_metrics.recent_likes}</div>
+                        <div className="text-sm text-slate-600">New Likes</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{startup.engagement_metrics.recent_bookmarks}</div>
+                        <div className="text-sm text-slate-600">New Bookmarks</div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-slate-300">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Engagement Trend:</span>
+                        <span className={`text-sm font-semibold ${
+                          startup.engagement_metrics.engagement_change_percent >= 0 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {startup.engagement_metrics.engagement_change_percent >= 0 ? '↗' : '↘'} 
+                          {Math.abs(startup.engagement_metrics.engagement_change_percent)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
