@@ -1,4 +1,4 @@
-// src/App.js - Enhanced with startup upload route
+// src/App.js - Final working version with startup upload functionality
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -9,6 +9,7 @@ import Home from './components/Home';
 import Startups from './components/Startups';
 import StartupDetail from './components/StartupDetail';
 import StartupUploadForm from './components/StartupUploadForm';
+import AdminDashboard from './components/AdminDashboard';
 import Jobs from './components/Jobs';
 import Profile from './components/Profile';
 import Bookmarks from './components/Bookmarks';
@@ -66,7 +67,7 @@ const ErrorFallback = ({ error, resetError }) => (
         <details className="mt-4 text-left">
           <summary className="text-sm text-gray-500 cursor-pointer">Error Details</summary>
           <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
-            {error.stack}
+            {error?.stack || error?.message || 'Unknown error'}
           </pre>
         </details>
       )}
@@ -76,7 +77,13 @@ const ErrorFallback = ({ error, resetError }) => (
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useContext(AuthContext);
+  const authContextValue = useContext(AuthContext);
+  
+  if (!authContextValue) {
+    return <LoadingScreen />;
+  }
+
+  const { isAuthenticated, loading } = authContextValue;
   
   if (loading) {
     return <LoadingScreen />;
@@ -87,7 +94,13 @@ const ProtectedRoute = ({ children }) => {
 
 // App Routes Component
 const AppRoutes = () => {
-  const { isAuthenticated, loading } = useContext(AuthContext);
+  const authContextValue = useContext(AuthContext);
+
+  if (!authContextValue) {
+    return <LoadingScreen />;
+  }
+
+  const { isAuthenticated, loading } = authContextValue;
 
   if (loading) {
     return <LoadingScreen />;
@@ -135,6 +148,14 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute>
                   <StartupUploadForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
                 </ProtectedRoute>
               } 
             />
