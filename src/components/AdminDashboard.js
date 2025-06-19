@@ -1,4 +1,4 @@
-// src/components/AdminDashboard.js - Website admin panel for startup approvals
+// src/components/AdminDashboard.js - Complete Fixed Version
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
@@ -13,7 +13,7 @@ const AdminDashboard = () => {
   const [startups, setStartups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('pending'); // 'all', 'pending', 'approved', 'rejected'
+  const [filter, setFilter] = useState('pending'); // 'all', 'pending', 'approved', 'featured'
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStartups, setSelectedStartups] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
@@ -24,7 +24,13 @@ const AdminDashboard = () => {
 
   const fetchStartups = async () => {
     setLoading(true);
+    setError(null);
     try {
+      console.log('🔍 Fetching startups with params:', { filter, searchTerm });
+      console.log('🔗 Making request to:', '/startups/admin/');
+      console.log('🔑 Auth token:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
+      console.log('👤 Current user:', user);
+      
       // Fetch all startups (both approved and unapproved)
       const response = await api.get('/startups/admin/', {
         params: {
@@ -32,10 +38,38 @@ const AdminDashboard = () => {
           search: searchTerm
         }
       });
-      setStartups(response.data.results || response.data);
+      
+      console.log('✅ Response received:', response.data);
+      console.log('📊 Startups count:', response.data.results?.length || response.data.length || 0);
+      
+      const startupsData = response.data.results || response.data;
+      setStartups(Array.isArray(startupsData) ? startupsData : []);
+      
+      // Log each startup's approval status
+      if (Array.isArray(startupsData)) {
+        startupsData.forEach(startup => {
+          console.log(`📝 Startup: ${startup.name} | Approved: ${startup.is_approved} | Featured: ${startup.is_featured} | Submitted by: ${startup.submitted_by?.username || 'Unknown'}`);
+        });
+      }
+      
     } catch (error) {
-      console.error('Error fetching startups:', error);
-      setError('Failed to load startups. Please try again.');
+      console.error('❌ Error fetching startups:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
+      let errorMessage = 'Failed to load startups. Please try again.';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication required. Please log in again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access denied. You need admin permissions to view this page.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Admin endpoint not found. Please check your server configuration.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -44,9 +78,13 @@ const AdminDashboard = () => {
   const handleApprovalAction = async (startupId, action) => {
     setActionLoading(true);
     try {
+      console.log(`🔄 Performing action '${action}' on startup ${startupId}`);
+      
       await api.patch(`/startups/${startupId}/admin/`, {
         action: action // 'approve', 'reject', 'feature', 'unfeature'
       });
+      
+      console.log(`✅ Action '${action}' completed successfully`);
       
       // Refresh the list
       fetchStartups();
@@ -54,7 +92,7 @@ const AdminDashboard = () => {
       // Clear selection if startup was in selected list
       setSelectedStartups(prev => prev.filter(id => id !== startupId));
     } catch (error) {
-      console.error('Error updating startup:', error);
+      console.error(`❌ Error performing action '${action}':`, error);
       setError(`Failed to ${action} startup. Please try again.`);
     } finally {
       setActionLoading(false);
@@ -66,16 +104,20 @@ const AdminDashboard = () => {
     
     setActionLoading(true);
     try {
+      console.log(`🔄 Performing bulk action '${action}' on ${selectedStartups.length} startups`);
+      
       await api.post('/startups/bulk-admin/', {
         startup_ids: selectedStartups,
         action: action
       });
       
+      console.log(`✅ Bulk action '${action}' completed successfully`);
+      
       // Refresh the list
       fetchStartups();
       setSelectedStartups([]);
     } catch (error) {
-      console.error('Error with bulk action:', error);
+      console.error(`❌ Error with bulk action '${action}':`, error);
       setError(`Failed to ${action} selected startups. Please try again.`);
     } finally {
       setActionLoading(false);
@@ -134,6 +176,12 @@ const AdminDashboard = () => {
           <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
           <p className="text-gray-600">You don't have permission to access the admin panel.</p>
+          <div className="mt-4 text-sm text-gray-500 bg-gray-100 rounded-lg p-4">
+            <p><strong>Debug Info:</strong></p>
+            <p>User: {user?.username || user?.email || 'Not logged in'}</p>
+            <p>Is Staff: {user?.is_staff ? 'Yes' : 'No'}</p>
+            <p>Is Superuser: {user?.is_superuser ? 'Yes' : 'No'}</p>
+          </div>
         </div>
       </div>
     );
@@ -162,6 +210,9 @@ const AdminDashboard = () => {
                 Admin Dashboard
               </h1>
               <p className="text-gray-600 mt-1">Manage startup submissions and approvals</p>
+              <div className="mt-2 text-sm text-gray-500">
+                Total startups: {startups.length} | Filter: {filter} | Selected: {selectedStartups.length}
+              </div>
             </div>
             
             <button
@@ -188,6 +239,23 @@ const AdminDashboard = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Debug Info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <details>
+              <summary className="text-yellow-800 font-medium cursor-pointer">🐛 Debug Info (Dev Only)</summary>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p><strong>API Base URL:</strong> {process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'}</p>
+                <p><strong>Auth Token:</strong> {localStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</p>
+                <p><strong>User:</strong> {user ? `${user.username || user.email} (Staff: ${user.is_staff}, Super: ${user.is_superuser})` : '❌ Not logged in'}</p>
+                <p><strong>Current Filter:</strong> {filter}</p>
+                <p><strong>Startups Loaded:</strong> {startups.length}</p>
+                <p><strong>Request URL:</strong> /startups/admin/?filter={filter}&search={searchTerm}</p>
+              </div>
+            </details>
           </div>
         )}
 
@@ -302,6 +370,9 @@ const AdminDashboard = () => {
                     Submitted
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Submitted By
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -334,7 +405,7 @@ const AdminDashboard = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{startup.industry?.name}</span>
+                      <span className="text-sm text-gray-900">{startup.industry_name || startup.industry?.name}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -348,6 +419,12 @@ const AdminDashboard = () => {
                       <div className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
                         {new Date(startup.created_at).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <Users className="w-3 h-3 mr-1" />
+                        {startup.submitted_by?.username || startup.submitted_by?.email || 'Unknown'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -411,11 +488,21 @@ const AdminDashboard = () => {
             </table>
           </div>
           
-          {filteredStartups.length === 0 && (
+          {filteredStartups.length === 0 && !loading && (
             <div className="text-center py-12">
               <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No startups found</h3>
-              <p className="text-gray-500">No startups match your current filter criteria.</p>
+              <p className="text-gray-500">
+                {startups.length === 0 
+                  ? "No startups have been submitted yet." 
+                  : "No startups match your current filter criteria."
+                }
+              </p>
+              {filter === 'pending' && startups.length === 0 && (
+                <p className="text-sm text-gray-400 mt-2">
+                  Try switching to "All Startups" to see if any have been submitted.
+                </p>
+              )}
             </div>
           )}
         </div>
