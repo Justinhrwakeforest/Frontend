@@ -1,4 +1,4 @@
-// src/components/StartupUploadForm.js - Enhanced Design with All Features
+// src/components/StartupUploadForm.js - Complete Full Version
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -19,6 +19,8 @@ const StartupUploadForm = () => {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -35,9 +37,7 @@ const StartupUploadForm = () => {
     revenue: '',
     user_count: '',
     growth_rate: '',
-    cover_image_url: '',
     is_featured: false,
-    // Additional fields
     contact_email: '',
     contact_phone: '',
     business_model: '',
@@ -56,6 +56,30 @@ const StartupUploadForm = () => {
     linkedin: '',
     github: ''
   });
+
+  // Default industries if API fails
+  const defaultIndustries = [
+    { id: 1, name: 'Technology', icon: '💻' },
+    { id: 2, name: 'Healthcare', icon: '🏥' },
+    { id: 3, name: 'Finance', icon: '💰' },
+    { id: 4, name: 'E-commerce', icon: '🛒' },
+    { id: 5, name: 'Education', icon: '📚' },
+    { id: 6, name: 'Food & Beverage', icon: '🍕' },
+    { id: 7, name: 'Travel & Tourism', icon: '✈️' },
+    { id: 8, name: 'Real Estate', icon: '🏠' },
+    { id: 9, name: 'Entertainment', icon: '🎬' },
+    { id: 10, name: 'Transportation', icon: '🚗' },
+    { id: 11, name: 'Energy', icon: '⚡' },
+    { id: 12, name: 'Agriculture', icon: '🌱' },
+    { id: 13, name: 'Manufacturing', icon: '🏭' },
+    { id: 14, name: 'Media', icon: '📺' },
+    { id: 15, name: 'Gaming', icon: '🎮' },
+    { id: 16, name: 'AI/Machine Learning', icon: '🤖' },
+    { id: 17, name: 'Blockchain/Crypto', icon: '⛓️' },
+    { id: 18, name: 'SaaS', icon: '☁️' },
+    { id: 19, name: 'Social Media', icon: '📱' },
+    { id: 20, name: 'Other', icon: '🔧' }
+  ];
 
   useEffect(() => {
     fetchIndustries();
@@ -77,14 +101,20 @@ const StartupUploadForm = () => {
 
   const fetchIndustries = async () => {
     try {
+      console.log('🔄 Fetching industries...');
       const response = await api.get('/startups/industries/');
       const industriesData = Array.isArray(response.data) ? response.data : [];
-      setIndustries(industriesData);
-      console.log('Industries loaded:', industriesData);
+      
+      if (industriesData.length > 0) {
+        setIndustries(industriesData);
+        console.log('✅ Industries loaded from API:', industriesData.length);
+      } else {
+        throw new Error('No industries returned from API');
+      }
     } catch (error) {
-      console.error('Error fetching industries:', error);
-      setIndustries([]);
-      setErrors({ general: 'Failed to load industries. Please refresh the page.' });
+      console.error('❌ Error fetching industries, using defaults:', error);
+      setIndustries(defaultIndustries);
+      console.log('✅ Using default industries:', defaultIndustries.length);
     }
   };
 
@@ -98,6 +128,47 @@ const StartupUploadForm = () => {
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, cover_image: 'Please select a valid image file' }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, cover_image: 'Image size must be less than 5MB' }));
+        return;
+      }
+      
+      setCoverImageFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCoverImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear any previous errors
+      if (errors.cover_image) {
+        setErrors(prev => ({ ...prev, cover_image: null }));
+      }
+    }
+  };
+
+  const removeCoverImage = () => {
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
+    // Reset the file input
+    const fileInput = document.getElementById('cover-image-input');
+    if (fileInput) {
+      fileInput.value = '';
     }
   };
 
@@ -140,25 +211,55 @@ const StartupUploadForm = () => {
   };
 
   const validateForm = () => {
+    console.log('🔍 Validating form...');
     const newErrors = {};
 
-    // Required fields
-    if (!formData.name.trim()) newErrors.name = 'Company name is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.industry) newErrors.industry = 'Industry is required';
-    if (!formData.location.trim()) newErrors.location = 'Location is required';
-    if (!formData.employee_count) newErrors.employee_count = 'Employee count is required';
-    if (!formData.founded_year) newErrors.founded_year = 'Founded year is required';
-
-    // Validation rules
-    if (formData.name.length > 100) newErrors.name = 'Company name too long (max 100 characters)';
-    if (formData.description.length < 50) newErrors.description = 'Description too short (min 50 characters)';
-    if (formData.description.length > 2000) newErrors.description = 'Description too long (max 2000 characters)';
+    // Required fields validation
+    console.log('📝 Form data:', formData);
     
+    if (!formData.name?.trim()) {
+      newErrors.name = 'Company name is required';
+      console.log('❌ Missing company name');
+    }
+    if (!formData.description?.trim()) {
+      newErrors.description = 'Description is required';
+      console.log('❌ Missing description');
+    }
+    if (!formData.industry) {
+      newErrors.industry = 'Industry is required';
+      console.log('❌ Missing industry');
+    }
+    if (!formData.location?.trim()) {
+      newErrors.location = 'Location is required';
+      console.log('❌ Missing location');
+    }
+    if (!formData.employee_count) {
+      newErrors.employee_count = 'Employee count is required';
+      console.log('❌ Missing employee count');
+    }
+    if (!formData.founded_year) {
+      newErrors.founded_year = 'Founded year is required';
+      console.log('❌ Missing founded year');
+    }
+
+    // Length validations
+    if (formData.name && formData.name.length > 100) {
+      newErrors.name = 'Company name too long (max 100 characters)';
+    }
+    if (formData.description && formData.description.length < 50) {
+      newErrors.description = 'Description too short (min 50 characters)';
+      console.log(`❌ Description too short: ${formData.description.length} characters`);
+    }
+    if (formData.description && formData.description.length > 2000) {
+      newErrors.description = 'Description too long (max 2000 characters)';
+    }
+    
+    // URL validation
     if (formData.website && !isValidUrl(formData.website)) {
       newErrors.website = 'Please enter a valid website URL';
     }
     
+    // Number validations
     if (formData.employee_count && (formData.employee_count < 1 || formData.employee_count > 100000)) {
       newErrors.employee_count = 'Employee count must be between 1 and 100,000';
     }
@@ -169,11 +270,14 @@ const StartupUploadForm = () => {
     }
 
     // Founder validation
-    const validFounders = founders.filter(f => f.name.trim());
+    const validFounders = founders.filter(f => f.name?.trim());
+    console.log('👥 Valid founders:', validFounders.length);
     if (validFounders.length === 0) {
       newErrors.founders = 'At least one founder is required';
+      console.log('❌ No valid founders');
     }
 
+    console.log('🔍 Validation errors:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -189,8 +293,19 @@ const StartupUploadForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🚀 Form submission started');
+    
+    // Check authentication first
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.log('❌ No auth token found');
+      setErrors({ general: 'Please log in to submit a startup' });
+      navigate('/auth');
+      return;
+    }
     
     if (!validateForm()) {
+      console.log('❌ Form validation failed');
       return;
     }
 
@@ -198,58 +313,100 @@ const StartupUploadForm = () => {
     setErrors({});
 
     try {
+      console.log('📝 Preparing submission data...');
+      
       // Prepare submission data
       const submissionData = {
-        ...formData,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        industry: parseInt(formData.industry),
+        location: formData.location.trim(),
         employee_count: parseInt(formData.employee_count),
         founded_year: parseInt(formData.founded_year),
-        industry: parseInt(formData.industry),
-        founders: founders.filter(f => f.name.trim()),
-        tags: tags.filter(t => t.trim()),
-        social_media: socialMedia
+        logo: formData.logo || '🚀',
+        
+        // Optional fields - only include if they have values
+        ...(formData.website && { website: formData.website.trim() }),
+        ...(formData.funding_amount && { funding_amount: formData.funding_amount.trim() }),
+        ...(formData.valuation && { valuation: formData.valuation.trim() }),
+        ...(formData.revenue && { revenue: formData.revenue.trim() }),
+        ...(formData.user_count && { user_count: formData.user_count.trim() }),
+        ...(formData.growth_rate && { growth_rate: formData.growth_rate.trim() }),
+        ...(formData.contact_email && { contact_email: formData.contact_email.trim() }),
+        ...(formData.contact_phone && { contact_phone: formData.contact_phone.trim() }),
+        ...(formData.business_model && { business_model: formData.business_model }),
+        ...(formData.target_market && { target_market: formData.target_market.trim() }),
+        
+        // Always include these even if false/empty
+        is_featured: formData.is_featured || false,
+        
+        // Process founders - only include those with names
+        founders: founders.filter(f => f.name?.trim()).map(founder => ({
+          name: founder.name.trim(),
+          title: founder.title || 'Founder',
+          bio: founder.bio || '',
+          linkedin_url: founder.linkedin || ''
+        })),
+        
+        // Process tags - only include non-empty tags
+        tags: tags.filter(t => t?.trim()).map(tag => tag.trim()),
+        
+        // Social media - only include if they have values
+        social_media: {
+          ...(socialMedia.twitter && { twitter: socialMedia.twitter.trim() }),
+          ...(socialMedia.linkedin && { linkedin: socialMedia.linkedin.trim() }),
+          ...(socialMedia.github && { github: socialMedia.github.trim() })
+        }
       };
 
-      // Remove empty optional fields
-      Object.keys(submissionData).forEach(key => {
-        if (submissionData[key] === '' && 
-            !['name', 'description', 'location', 'industry', 'employee_count', 'founded_year'].includes(key)) {
-          delete submissionData[key];
-        }
-      });
-
-      console.log('Submitting data:', submissionData);
+      console.log('📤 Submitting data:', submissionData);
 
       const response = await api.post('/startups/', submissionData);
       
-      console.log('Response:', response.data);
+      console.log('✅ Startup submitted successfully:', response.data);
       
       setSuccess(true);
       
       // Clear any saved draft
       localStorage.removeItem('startup_draft');
       
-      // Redirect to the new startup page after a short delay
+      // Redirect to startups page after a short delay
       setTimeout(() => {
-        if (response.data.startup && response.data.startup.id) {
-          navigate(`/startups/${response.data.startup.id}`);
-        } else if (response.data.id) {
-          navigate(`/startups/${response.data.id}`);
-        } else {
-          navigate('/startups');
-        }
+        navigate('/startups');
       }, 2000);
 
     } catch (error) {
-      console.error('Error submitting startup:', error);
+      console.error('❌ Error submitting startup:', error);
+      
+      let errorMessage = 'Failed to submit startup. Please try again.';
       
       if (error.response?.status === 401) {
-        setErrors({ general: 'Authentication required. Please log in and try again.' });
+        errorMessage = 'Authentication required. Please log in and try again.';
+        localStorage.removeItem('auth_token');
+        navigate('/auth');
+      } else if (error.response?.status === 405) {
+        errorMessage = 'Method not allowed. Please check your server configuration.';
       } else if (error.response?.data) {
-        setErrors(error.response.data);
+        console.log('📋 Server errors:', error.response.data);
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else {
+          // Handle field-specific errors
+          setErrors(error.response.data);
+          errorMessage = 'Please fix the errors below and try again.';
+        }
       } else if (error.response?.status >= 500) {
-        setErrors({ general: 'Server error. Please try again later.' });
-      } else {
-        setErrors({ general: 'Failed to submit startup. Please check your connection and try again.' });
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      if (!error.response?.data || typeof error.response.data === 'string') {
+        setErrors({ general: errorMessage });
       }
     } finally {
       setLoading(false);
@@ -257,11 +414,13 @@ const StartupUploadForm = () => {
   };
 
   const handleSaveDraft = () => {
+    console.log('💾 Saving draft...');
     const draftData = {
       formData,
       founders,
       tags,
       socialMedia,
+      coverImagePreview,
       savedAt: new Date().toISOString()
     };
     
@@ -273,14 +432,18 @@ const StartupUploadForm = () => {
     const draft = localStorage.getItem('startup_draft');
     if (draft) {
       try {
+        console.log('📂 Loading draft...');
         const draftData = JSON.parse(draft);
         setFormData(draftData.formData || formData);
         setFounders(draftData.founders || founders);
         setTags(draftData.tags || tags);
         setSocialMedia(draftData.socialMedia || socialMedia);
+        if (draftData.coverImagePreview) {
+          setCoverImagePreview(draftData.coverImagePreview);
+        }
         alert('Draft loaded successfully!');
       } catch (error) {
-        console.error('Error loading draft:', error);
+        console.error('❌ Error loading draft:', error);
         alert('Failed to load draft');
       }
     }
@@ -298,7 +461,7 @@ const StartupUploadForm = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Startup Submitted Successfully!</h2>
           <p className="text-gray-600 mb-6">
-            Your startup has been submitted for review. You'll be redirected to the startup page shortly.
+            Your startup has been submitted for review. You'll be redirected to the startups page shortly.
           </p>
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-green-300 border-t-green-600 mx-auto"></div>
         </div>
@@ -374,6 +537,28 @@ const StartupUploadForm = () => {
           </div>
         )}
 
+        {/* Debug Info - Only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <details>
+              <summary className="text-yellow-800 font-medium cursor-pointer">🐛 Debug Info (Dev Only)</summary>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p><strong>Auth Token:</strong> {localStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</p>
+                <p><strong>User:</strong> {user ? user.username || user.email || 'Unknown' : '❌ Not logged in'}</p>
+                <p><strong>Industries Loaded:</strong> {industries.length}</p>
+                <p><strong>Required Fields:</strong> 
+                  Name: {formData.name ? '✅' : '❌'}, 
+                  Desc: {formData.description?.length >= 50 ? '✅' : '❌'}, 
+                  Industry: {formData.industry ? '✅' : '❌'}, 
+                  Location: {formData.location ? '✅' : '❌'}, 
+                  Employees: {formData.employee_count ? '✅' : '❌'}, 
+                  Year: {formData.founded_year ? '✅' : '❌'}
+                </p>
+              </div>
+            </details>
+          </div>
+        )}
+
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
@@ -445,7 +630,7 @@ const StartupUploadForm = () => {
                   required
                 >
                   <option value="">Select an industry</option>
-                  {Array.isArray(industries) && industries.map(industry => (
+                  {industries.map(industry => (
                     <option key={industry.id} value={industry.id}>
                       {industry.icon} {industry.name}
                     </option>
@@ -531,22 +716,64 @@ const StartupUploadForm = () => {
                 )}
               </div>
 
-              {/* Cover Image URL */}
+              {/* Cover Image Upload */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <ImageIcon className="w-4 h-4 inline mr-1" />
-                  Cover Image URL
+                  Cover Image
                 </label>
-                <input
-                  type="url"
-                  name="cover_image_url"
-                  value={formData.cover_image_url}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/your-cover-image.jpg"
-                />
+                
+                {!coverImagePreview ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                    <input
+                      type="file"
+                      id="cover-image-input"
+                      accept="image/*"
+                      onChange={handleCoverImageChange}
+                      className="hidden"
+                    />
+                    <label 
+                      htmlFor="cover-image-input" 
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
+                      <p className="text-gray-600 mb-2">
+                        Click to upload a cover image or drag and drop
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        PNG, JPG, GIF up to 5MB. Recommended size: 1200x400px
+                      </p>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <img
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeCoverImage}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                      {coverImageFile?.name}
+                    </div>
+                  </div>
+                )}
+                
+                {errors.cover_image && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.cover_image}
+                  </p>
+                )}
+                
                 <p className="mt-1 text-sm text-gray-500">
-                  Recommended size: 1200x400px. This will be displayed as a banner on your startup page.
+                  This will be displayed as a banner on your startup page.
                 </p>
               </div>
             </div>
@@ -860,7 +1087,7 @@ const StartupUploadForm = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Name
+                        Name *
                       </label>
                       <input
                         type="text"
