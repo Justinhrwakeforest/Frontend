@@ -1,7 +1,9 @@
+// src/components/JobUploadForm.js - Updated as Modal Component
 import React, { useState, useEffect } from 'react';
 import { Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, X } from 'lucide-react';
+import api from '../services/api';
 
-const JobUploadForm = ({ onClose, onSuccess }) => {
+const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -28,21 +30,16 @@ const JobUploadForm = ({ onClose, onSuccess }) => {
   const [skillInput, setSkillInput] = useState('');
 
   useEffect(() => {
-    fetchStartups();
-    fetchJobTypes();
-  }, []);
+    if (isOpen) {
+      fetchStartups();
+      fetchJobTypes();
+    }
+  }, [isOpen]);
 
   const fetchStartups = async () => {
     try {
-      const response = await fetch('/api/startups/', {
-        headers: {
-          'Authorization': `Token ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStartups(data.results || data);
-      }
+      const response = await api.get('/startups/');
+      setStartups(response.data.results || response.data);
     } catch (error) {
       console.error('Error fetching startups:', error);
     }
@@ -50,11 +47,8 @@ const JobUploadForm = ({ onClose, onSuccess }) => {
 
   const fetchJobTypes = async () => {
     try {
-      const response = await fetch('/api/jobs/types/');
-      if (response.ok) {
-        const data = await response.json();
-        setJobTypes(data);
-      }
+      const response = await api.get('/jobs/types/');
+      setJobTypes(response.data);
     } catch (error) {
       console.error('Error fetching job types:', error);
     }
@@ -197,30 +191,71 @@ const JobUploadForm = ({ onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/jobs/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await api.post('/jobs/', formData);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        onSuccess && onSuccess(data);
-        onClose && onClose();
-      } else {
-        setErrors(data);
+      if (response.status === 201) {
+        onSuccess && onSuccess(response.data);
+        // Reset form
+        setFormData({
+          title: '',
+          description: '',
+          startup: '',
+          location: '',
+          job_type: '',
+          salary_range: '',
+          is_remote: false,
+          is_urgent: false,
+          experience_level: 'mid',
+          requirements: '',
+          benefits: '',
+          application_deadline: '',
+          expires_at: '',
+          company_email: '',
+          skills: []
+        });
+        setErrors({});
+        setEmailVerificationStatus(null);
+        setSkillInput('');
       }
     } catch (error) {
       console.error('Error creating job:', error);
-      setErrors({ general: 'Failed to create job. Please try again.' });
+      if (error.response?.data) {
+        setErrors(error.response.data);
+      } else {
+        setErrors({ general: 'Failed to create job. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleClose = () => {
+    if (window.confirm('Are you sure you want to close? Your changes will be lost.')) {
+      setFormData({
+        title: '',
+        description: '',
+        startup: '',
+        location: '',
+        job_type: '',
+        salary_range: '',
+        is_remote: false,
+        is_urgent: false,
+        experience_level: 'mid',
+        requirements: '',
+        benefits: '',
+        application_deadline: '',
+        expires_at: '',
+        company_email: '',
+        skills: []
+      });
+      setErrors({});
+      setEmailVerificationStatus(null);
+      setSkillInput('');
+      onClose && onClose();
+    }
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -231,7 +266,7 @@ const JobUploadForm = ({ onClose, onSuccess }) => {
             <p className="text-gray-600 mt-1">Fill out the details below to post your job opportunity</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X size={24} />
@@ -570,7 +605,7 @@ const JobUploadForm = ({ onClose, onSuccess }) => {
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               disabled={loading}
             >
