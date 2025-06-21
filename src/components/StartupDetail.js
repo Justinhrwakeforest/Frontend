@@ -1,12 +1,12 @@
-// src/components/StartupDetail.js - Fixed with correct API calls and error handling
+// src/components/StartupDetail.js - Updated with Edit Button
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import api from '../services/api'; // Use the configured api instance
+import api from '../services/api';
 import { 
   ChevronLeft, MapPin, Users, Star, DollarSign, TrendingUp, 
   Briefcase, ExternalLink, Heart, Bookmark, MessageCircle, 
   Share2, ThumbsUp, Clock, Award, Building, Plus, 
-  Globe, Calendar, Target, Shield, CheckCircle
+  Globe, Calendar, Target, Shield, CheckCircle, Edit3
 } from "lucide-react";
 
 export default function StartupDetail() {
@@ -32,7 +32,6 @@ export default function StartupDetail() {
     setLoading(true);
     setError(null);
     try {
-      // Use the configured api instance instead of axios directly
       const response = await api.get(`/startups/${id}/`);
       const startupData = response.data;
       
@@ -55,12 +54,16 @@ export default function StartupDetail() {
 
   const showErrorMessage = (message) => {
     setError(message);
-    setTimeout(() => setError(null), 5000); // Clear error after 5 seconds
+    setTimeout(() => setError(null), 5000);
   };
 
   const showSuccessMessage = (message) => {
-    // You can implement a success toast here
     console.log('Success:', message);
+  };
+
+  const handleEdit = () => {
+    // Navigate to edit form or open edit modal
+    navigate(`/startups/${id}/edit`);
   };
 
   const handleRate = async (rating) => {
@@ -68,7 +71,6 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      // Check if user is authenticated
       const token = localStorage.getItem('auth_token');
       if (!token) {
         showErrorMessage('Please log in to rate this startup');
@@ -107,7 +109,6 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      // Check if user is authenticated
       const token = localStorage.getItem('auth_token');
       if (!token) {
         showErrorMessage('Please log in to like this startup');
@@ -143,7 +144,6 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      // Check if user is authenticated
       const token = localStorage.getItem('auth_token');
       if (!token) {
         showErrorMessage('Please log in to bookmark this startup');
@@ -180,7 +180,6 @@ export default function StartupDetail() {
     
     setSubmittingAction(true);
     try {
-      // Check if user is authenticated
       const token = localStorage.getItem('auth_token');
       if (!token) {
         showErrorMessage('Please log in to comment');
@@ -314,6 +313,17 @@ export default function StartupDetail() {
             </Link>
             
             <div className="flex items-center space-x-3">
+              {/* Edit Button - Only show if user can edit */}
+              {startup.can_edit && (
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center px-4 py-2.5 rounded-lg border border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400 transition-all duration-200 font-medium"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit Startup
+                </button>
+              )}
+
               <button
                 onClick={handleBookmark}
                 disabled={submittingAction}
