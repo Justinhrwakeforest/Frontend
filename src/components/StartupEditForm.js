@@ -1,4 +1,4 @@
-// src/components/StartupEditForm.js - Component for editing startups
+// src/components/StartupEditForm.js - Enhanced with all upload form features
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -6,7 +6,8 @@ import api from '../services/api';
 import {
   Building, Save, X, ArrowLeft, AlertCircle, CheckCircle,
   Calendar, Users, DollarSign, Briefcase, Target, TrendingUp,
-  Globe, Mail, Phone, Tag, Image as ImageIcon
+  Globe, Mail, Phone, Tag, Image as ImageIcon, Plus, Trash2,
+  Star, Award, Twitter, Linkedin, Github
 } from 'lucide-react';
 
 const StartupEditForm = () => {
@@ -22,6 +23,19 @@ const StartupEditForm = () => {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // New states for additional features
+  const [founders, setFounders] = useState([
+    { name: '', title: 'Founder', bio: '', linkedin: '' }
+  ]);
+  const [tags, setTags] = useState(['']);
+  const [socialMedia, setSocialMedia] = useState({
+    twitter: '',
+    linkedin: '',
+    github: ''
+  });
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -63,8 +77,38 @@ const StartupEditForm = () => {
         contact_phone: startupData.contact_phone || '',
         business_model: startupData.business_model || '',
         target_market: startupData.target_market || '',
-        cover_image_url: startupData.cover_image_url || ''
+        cover_image_url: startupData.cover_image_url || '',
+        is_featured: startupData.is_featured || false
       });
+
+      // Initialize founders
+      if (startupData.founders && startupData.founders.length > 0) {
+        setFounders(startupData.founders.map(founder => ({
+          name: founder.name || '',
+          title: founder.title || 'Founder',
+          bio: founder.bio || '',
+          linkedin: founder.linkedin_url || ''
+        })));
+      }
+
+      // Initialize tags
+      if (startupData.tags && startupData.tags.length > 0) {
+        setTags([...startupData.tags, '']);
+      }
+
+      // Initialize social media
+      if (startupData.social_media) {
+        setSocialMedia({
+          twitter: startupData.social_media.twitter || '',
+          linkedin: startupData.social_media.linkedin || '',
+          github: startupData.social_media.github || ''
+        });
+      }
+
+      // Set cover image preview if exists
+      if (startupData.cover_image_url) {
+        setCoverImagePreview(startupData.cover_image_url);
+      }
       
       console.log('Startup data loaded for editing:', startupData);
     } catch (error) {
@@ -145,6 +189,87 @@ const StartupEditForm = () => {
     }
   };
 
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, cover_image: 'Please select a valid image file' }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, cover_image: 'Image size must be less than 5MB' }));
+        return;
+      }
+      
+      setCoverImageFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCoverImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear any previous errors and URL field
+      if (errors.cover_image) {
+        setErrors(prev => ({ ...prev, cover_image: null }));
+      }
+      setFormData(prev => ({ ...prev, cover_image_url: '' }));
+    }
+  };
+
+  const removeCoverImage = () => {
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
+    setFormData(prev => ({ ...prev, cover_image_url: '' }));
+    // Reset the file input
+    const fileInput = document.getElementById('cover-image-input');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const handleSocialMediaChange = (platform, value) => {
+    setSocialMedia(prev => ({ ...prev, [platform]: value }));
+  };
+
+  const handleFounderChange = (index, field, value) => {
+    setFounders(prev => prev.map((founder, i) => 
+      i === index ? { ...founder, [field]: value } : founder
+    ));
+  };
+
+  const addFounder = () => {
+    if (founders.length < 5) {
+      setFounders(prev => [...prev, { name: '', title: 'Co-Founder', bio: '', linkedin: '' }]);
+    }
+  };
+
+  const removeFounder = (index) => {
+    if (founders.length > 1) {
+      setFounders(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleTagChange = (index, value) => {
+    setTags(prev => prev.map((tag, i) => i === index ? value : tag));
+  };
+
+  const addTag = () => {
+    if (tags.length < 10 && tags[tags.length - 1].trim() !== '') {
+      setTags(prev => [...prev, '']);
+    }
+  };
+
+  const removeTag = (index) => {
+    if (tags.length > 1) {
+      setTags(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -186,6 +311,12 @@ const StartupEditForm = () => {
       newErrors.founded_year = `Founded year must be between 1800 and ${currentYear}`;
     }
 
+    // Founder validation
+    const validFounders = founders.filter(f => f.name?.trim());
+    if (validFounders.length === 0) {
+      newErrors.founders = 'At least one founder is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -201,41 +332,86 @@ const StartupEditForm = () => {
     setErrors({});
 
     try {
-      // Prepare the changes object - only include fields that have changed
-      const changes = {};
-      
-      Object.keys(formData).forEach(key => {
-        const originalValue = startup[key] || '';
-        const newValue = formData[key] || '';
+      // Prepare the update data with all current values
+      const updateData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        industry: parseInt(formData.industry),
+        location: formData.location.trim(),
+        employee_count: parseInt(formData.employee_count),
+        founded_year: parseInt(formData.founded_year),
+        logo: formData.logo || '🚀',
         
-        if (originalValue !== newValue) {
-          changes[key] = newValue;
+        // Optional fields - only include if they have values
+        ...(formData.website && { website: formData.website.trim() }),
+        ...(formData.funding_amount && { funding_amount: formData.funding_amount.trim() }),
+        ...(formData.valuation && { valuation: formData.valuation.trim() }),
+        ...(formData.revenue && { revenue: formData.revenue.trim() }),
+        ...(formData.user_count && { user_count: formData.user_count.trim() }),
+        ...(formData.growth_rate && { growth_rate: formData.growth_rate.trim() }),
+        ...(formData.contact_email && { contact_email: formData.contact_email.trim() }),
+        ...(formData.contact_phone && { contact_phone: formData.contact_phone.trim() }),
+        ...(formData.business_model && { business_model: formData.business_model }),
+        ...(formData.target_market && { target_market: formData.target_market.trim() }),
+        ...(formData.cover_image_url && { cover_image_url: formData.cover_image_url.trim() }),
+        
+        // Always include these
+        is_featured: formData.is_featured || false,
+        
+        // Process founders - only include those with names
+        founders: founders.filter(f => f.name?.trim()).map(founder => ({
+          name: founder.name.trim(),
+          title: founder.title || 'Founder',
+          bio: founder.bio || '',
+          linkedin_url: founder.linkedin || ''
+        })),
+        
+        // Process tags - only include non-empty tags
+        tags: tags.filter(t => t?.trim()).map(tag => tag.trim()),
+        
+        // Social media - only include if they have values
+        social_media: {
+          ...(socialMedia.twitter && { twitter: socialMedia.twitter.trim() }),
+          ...(socialMedia.linkedin && { linkedin: socialMedia.linkedin.trim() }),
+          ...(socialMedia.github && { github: socialMedia.github.trim() })
         }
-      });
+      };
 
-      if (Object.keys(changes).length === 0) {
-        setErrors({ general: 'No changes detected' });
-        setSubmitting(false);
-        return;
+      console.log('Submitting update data:', updateData);
+
+      // Try to use submit_edit endpoint first, fallback to direct update
+      let response;
+      try {
+        // First try the submit_edit endpoint (if it exists)
+        response = await api.post(`/startups/${id}/submit_edit/`, {
+          changes: updateData
+        });
+      } catch (submitError) {
+        if (submitError.response?.status === 404) {
+          // Endpoint doesn't exist, try direct update via PUT
+          console.log('submit_edit endpoint not found, trying direct update...');
+          response = await api.put(`/startups/${id}/`, updateData);
+          
+          // Create a mock response structure for consistency
+          response.data = {
+            direct_update: true,
+            message: 'Startup updated successfully'
+          };
+        } else {
+          throw submitError;
+        }
       }
 
-      console.log('Submitting changes:', changes);
+      console.log('Update response:', response.data);
 
-      // Submit edit request
-      const response = await api.post(`/startups/${id}/submit_edit/`, {
-        changes: changes
-      });
-
-      console.log('Edit response:', response.data);
-
-      if (response.data.direct_update) {
-        // Admin made direct update
+      if (response.data.direct_update || response.status === 200) {
+        // Update successful
         setSuccess(true);
         setTimeout(() => {
           navigate(`/startups/${id}`);
         }, 2000);
       } else {
-        // Premium user - edit request submitted
+        // Edit request submitted for review
         setSuccess(true);
         setTimeout(() => {
           navigate(`/startups/${id}`);
@@ -250,6 +426,8 @@ const StartupEditForm = () => {
         navigate('/auth');
       } else if (error.response?.status === 403) {
         setErrors({ general: 'You do not have permission to edit this startup. Only premium members who submitted the startup or admins can edit.' });
+      } else if (error.response?.status === 404) {
+        setErrors({ general: 'Startup not found or API endpoint not available.' });
       } else if (error.response?.data) {
         if (typeof error.response.data === 'string') {
           setErrors({ general: error.response.data });
@@ -353,22 +531,6 @@ const StartupEditForm = () => {
             </button>
           </div>
         </div>
-
-        {/* Debug Info - Only show in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <details>
-              <summary className="text-yellow-800 font-medium cursor-pointer">🐛 Debug Info (Dev Only)</summary>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p><strong>Industries Type:</strong> {typeof industries}</p>
-                <p><strong>Industries Length:</strong> {Array.isArray(industries) ? industries.length : 'Not an array'}</p>
-                <p><strong>Industries Loading:</strong> {industriesLoading ? 'Yes' : 'No'}</p>
-                <p><strong>Industries Sample:</strong> {JSON.stringify(industries.slice(0, 2), null, 2)}</p>
-                <p><strong>Form Data Industry:</strong> {formData.industry || 'Not set'}</p>
-              </div>
-            </details>
-          </div>
-        )}
 
         {/* Error Messages */}
         {errors.general && (
@@ -515,22 +677,105 @@ const StartupEditForm = () => {
                 )}
               </div>
 
-              {/* Cover Image URL */}
+              {/* Cover Image Upload & URL */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <ImageIcon className="w-4 h-4 inline mr-1" />
-                  Cover Image URL
+                  Cover Image
                 </label>
-                <input
-                  type="url"
-                  name="cover_image_url"
-                  value={formData.cover_image_url}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/your-cover-image.jpg"
-                />
+                
+                {!coverImagePreview ? (
+                  <div>
+                    {/* File Upload */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors mb-4">
+                      <input
+                        type="file"
+                        id="cover-image-input"
+                        accept="image/*"
+                        onChange={handleCoverImageChange}
+                        className="hidden"
+                      />
+                      <label 
+                        htmlFor="cover-image-input" 
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
+                        <p className="text-gray-600 mb-2">
+                          Click to upload a cover image or drag and drop
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          PNG, JPG, GIF up to 5MB. Recommended size: 1200x400px
+                        </p>
+                      </label>
+                    </div>
+                    
+                    {/* OR separator */}
+                    <div className="relative flex items-center justify-center mb-4">
+                      <div className="border-t border-gray-300 w-full"></div>
+                      <span className="bg-white px-3 text-gray-500 text-sm">OR</span>
+                      <div className="border-t border-gray-300 w-full"></div>
+                    </div>
+                    
+                    {/* URL Input */}
+                    <input
+                      type="url"
+                      name="cover_image_url"
+                      value={formData.cover_image_url}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        // If user enters a URL, show it as preview
+                        if (e.target.value && e.target.value.match(/\.(jpeg|jpg|gif|png)$/i)) {
+                          setCoverImagePreview(e.target.value);
+                          setCoverImageFile(null); // Clear any uploaded file
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Or enter a URL to your cover image (https://...)"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <img
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                      onError={() => {
+                        // If image fails to load, remove preview and show error
+                        setCoverImagePreview(null);
+                        setCoverImageFile(null);
+                        setFormData(prev => ({ ...prev, cover_image_url: '' }));
+                        setErrors(prev => ({ ...prev, cover_image: 'Failed to load image. Please check the URL or upload a different file.' }));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={removeCoverImage}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    {coverImageFile && (
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                        {coverImageFile.name}
+                      </div>
+                    )}
+                    {!coverImageFile && formData.cover_image_url && (
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                        URL Image
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {errors.cover_image && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.cover_image}
+                  </p>
+                )}
+                
                 <p className="mt-1 text-sm text-gray-500">
-                  URL to your startup's cover image. Recommended size: 1200x400px
+                  This will be displayed as a banner on your startup page. Upload a file or provide an image URL.
                 </p>
               </div>
 
@@ -741,14 +986,14 @@ const StartupEditForm = () => {
             </div>
           </div>
 
-          {/* Contact Information */}
+          {/* Contact & Social Media */}
           <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
               <Globe className="w-5 h-5 mr-2 text-blue-600" />
-              Contact Information
+              Contact & Social Media
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Contact Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -780,6 +1025,233 @@ const StartupEditForm = () => {
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Twitter className="w-4 h-4 inline mr-1 text-blue-500" />
+                  Twitter
+                </label>
+                <input
+                  type="url"
+                  value={socialMedia.twitter}
+                  onChange={(e) => handleSocialMediaChange('twitter', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://twitter.com/yourcompany"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Linkedin className="w-4 h-4 inline mr-1 text-blue-700" />
+                  LinkedIn
+                </label>
+                <input
+                  type="url"
+                  value={socialMedia.linkedin}
+                  onChange={(e) => handleSocialMediaChange('linkedin', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://linkedin.com/company/yourcompany"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Github className="w-4 h-4 inline mr-1 text-gray-800" />
+                  GitHub
+                </label>
+                <input
+                  type="url"
+                  value={socialMedia.github}
+                  onChange={(e) => handleSocialMediaChange('github', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://github.com/yourcompany"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Founders & Team */}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-blue-600" />
+                Founders & Team
+              </h2>
+              <button
+                type="button"
+                onClick={addFounder}
+                disabled={founders.length >= 5}
+                className="flex items-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Founder
+              </button>
+            </div>
+
+            {errors.founders && (
+              <p className="mb-4 text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.founders}
+              </p>
+            )}
+
+            <div className="space-y-6">
+              {founders.map((founder, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-6 relative">
+                  {founders.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeFounder(index)}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={founder.name}
+                        onChange={(e) => handleFounderChange(index, 'name', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Full name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={founder.title}
+                        onChange={(e) => handleFounderChange(index, 'title', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="e.g., CEO, CTO"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        LinkedIn
+                      </label>
+                      <input
+                        type="url"
+                        value={founder.linkedin}
+                        onChange={(e) => handleFounderChange(index, 'linkedin', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="https://linkedin.com/in/..."
+                      />
+                    </div>
+
+                    <div></div>
+                    
+                    <div className="lg:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Bio
+                      </label>
+                      <textarea
+                        value={founder.bio}
+                        onChange={(e) => handleFounderChange(index, 'bio', e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Brief bio and background..."
+                        maxLength={500}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags & Keywords */}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Tag className="w-5 h-5 mr-2 text-blue-600" />
+                Tags & Keywords
+              </h2>
+              <button
+                type="button"
+                onClick={addTag}
+                disabled={tags.length >= 10 || tags[tags.length - 1].trim() === ''}
+                className="flex items-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Tag
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Add relevant tags to help people discover your startup (e.g., technologies, market focus, etc.)
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tags.map((tag, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={tag}
+                    onChange={(e) => handleTagChange(index, e.target.value)}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., React, AI, SaaS"
+                    maxLength={30}
+                  />
+                  {tags.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTag(index)}
+                      className="text-gray-400 hover:text-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {errors.tags && (
+              <p className="mt-4 text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.tags}
+              </p>
+            )}
+          </div>
+
+          {/* Additional Options */}
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <Award className="w-5 h-5 mr-2 text-blue-600" />
+              Additional Options
+            </h2>
+
+            <div className="space-y-4">
+              <label className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors">
+                <input
+                  type="checkbox"
+                  name="is_featured"
+                  checked={formData.is_featured}
+                  onChange={handleInputChange}
+                  className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    <span className="font-medium text-gray-900">Request Featured Status</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Request to have your startup highlighted as featured (subject to review)
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
 
