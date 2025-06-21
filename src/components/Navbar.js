@@ -1,4 +1,4 @@
-// src/components/Navbar.js - Complete Enhanced Navbar with notification bell integration
+// src/components/Navbar.js - Complete Enhanced Navbar with admin link
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -61,6 +61,23 @@ const Navbar = () => {
     { label: 'Settings', icon: Settings, path: '/settings' },
     { label: 'Help', icon: HelpCircle, path: '/help' },
   ];
+
+  // Add admin menu item dynamically for admin users
+  const getMenuItems = () => {
+    const items = [...profileMenuItems];
+    
+    // Insert admin link after "View Profile" (index 1)
+    if (user?.is_staff || user?.is_superuser) {
+      items.splice(1, 0, { 
+        label: 'Admin Panel', 
+        icon: Shield, 
+        path: '/admin',
+        isAdmin: true 
+      });
+    }
+    
+    return items;
+  };
 
   // Load user stats on mount
   useEffect(() => {
@@ -349,6 +366,13 @@ const Navbar = () => {
                       Premium
                     </div>
                   )}
+                  {/* Show admin badge */}
+                  {(user?.is_staff || user?.is_superuser) && (
+                    <div className="text-xs text-blue-600 flex items-center">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin
+                    </div>
+                  )}
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
@@ -372,12 +396,20 @@ const Navbar = () => {
                         <div>
                           <div className="font-medium text-gray-900">{getUserDisplayName()}</div>
                           <div className="text-sm text-gray-500">{user?.email}</div>
-                          {user?.is_premium && (
-                            <div className="text-xs text-yellow-600 flex items-center mt-1">
-                              <Award className="w-3 h-3 mr-1" />
-                              Premium Member
-                            </div>
-                          )}
+                          <div className="flex items-center space-x-3 mt-1">
+                            {user?.is_premium && (
+                              <div className="text-xs text-yellow-600 flex items-center">
+                                <Award className="w-3 h-3 mr-1" />
+                                Premium
+                              </div>
+                            )}
+                            {(user?.is_staff || user?.is_superuser) && (
+                              <div className="text-xs text-blue-600 flex items-center">
+                                <Shield className="w-3 h-3 mr-1" />
+                                Admin
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -404,17 +436,28 @@ const Navbar = () => {
 
                     {/* Menu Items */}
                     <div className="py-2">
-                      {profileMenuItems.map((item) => {
+                      {getMenuItems().map((item) => {
                         const IconComponent = item.icon;
                         return (
                           <Link
                             key={item.path}
                             to={item.path}
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            className={`flex items-center px-4 py-2 text-sm transition-colors ${
+                              item.isAdmin 
+                                ? 'text-blue-700 hover:bg-blue-50' 
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
                             onClick={() => setIsProfileDropdownOpen(false)}
                           >
-                            <IconComponent className="w-4 h-4 mr-3 text-gray-400" />
+                            <IconComponent className={`w-4 h-4 mr-3 ${
+                              item.isAdmin ? 'text-blue-600' : 'text-gray-400'
+                            }`} />
                             {item.label}
+                            {item.isAdmin && (
+                              <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                Admin
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
@@ -524,21 +567,38 @@ const Navbar = () => {
                 <div>
                   <div className="font-medium text-gray-900">{getUserDisplayName()}</div>
                   <div className="text-sm text-gray-500">{user?.email}</div>
+                  {(user?.is_staff || user?.is_superuser) && (
+                    <div className="text-xs text-blue-600 flex items-center mt-1">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1">
-                {profileMenuItems.slice(0, 3).map((item) => {
+                {getMenuItems().slice(0, 4).map((item) => {
                   const IconComponent = item.icon;
                   return (
                     <Link
                       key={item.path}
                       to={item.path}
-                      className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                        item.isAdmin 
+                          ? 'text-blue-700 hover:bg-blue-50' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <IconComponent className="w-4 h-4 mr-3 text-gray-400" />
+                      <IconComponent className={`w-4 h-4 mr-3 ${
+                        item.isAdmin ? 'text-blue-600' : 'text-gray-400'
+                      }`} />
                       {item.label}
+                      {item.isAdmin && (
+                        <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                          Admin
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
