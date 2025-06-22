@@ -1,7 +1,8 @@
-// src/components/StartupDetail.js - Updated with Edit Button
+// src/components/StartupDetail.js - Complete file with claiming functionality
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from '../services/api';
+import ClaimStartupButton from './ClaimStartupButton';
 import { 
   ChevronLeft, MapPin, Users, Star, DollarSign, TrendingUp, 
   Briefcase, ExternalLink, Heart, Bookmark, MessageCircle, 
@@ -62,8 +63,12 @@ export default function StartupDetail() {
   };
 
   const handleEdit = () => {
-    // Navigate to edit form or open edit modal
     navigate(`/startups/${id}/edit`);
+  };
+
+  const handleClaimUpdate = (claimData) => {
+    // Refresh startup data when claim is updated
+    fetchStartupDetail();
   };
 
   const handleRate = async (rating) => {
@@ -90,7 +95,6 @@ export default function StartupDetail() {
       }));
       
       showSuccessMessage('Rating submitted successfully!');
-      console.log('Rating submitted successfully:', response.data);
     } catch (error) {
       console.error('Error submitting rating:', error);
       if (error.response?.status === 401) {
@@ -125,7 +129,6 @@ export default function StartupDetail() {
       }));
       
       showSuccessMessage(response.data.message);
-      console.log('Like toggled successfully:', response.data);
     } catch (error) {
       console.error('Error toggling like:', error);
       if (error.response?.status === 401) {
@@ -160,7 +163,6 @@ export default function StartupDetail() {
       }));
       
       showSuccessMessage(response.data.message);
-      console.log('Bookmark toggled successfully:', response.data);
     } catch (error) {
       console.error('Error toggling bookmark:', error);
       if (error.response?.status === 401) {
@@ -199,7 +201,6 @@ export default function StartupDetail() {
       
       setComment('');
       showSuccessMessage('Comment posted successfully!');
-      console.log('Comment submitted successfully:', response.data);
     } catch (error) {
       console.error('Error submitting comment:', error);
       if (error.response?.status === 401) {
@@ -313,6 +314,13 @@ export default function StartupDetail() {
             </Link>
             
             <div className="flex items-center space-x-3">
+              {/* Claim Button - NEW */}
+              <ClaimStartupButton 
+                startup={startup}
+                userClaimRequest={startup.user_claim_request}
+                onClaimUpdate={handleClaimUpdate}
+              />
+
               {/* Edit Button - Only show if user can edit */}
               {startup.can_edit && (
                 <button
@@ -360,14 +368,14 @@ export default function StartupDetail() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Professional Startup Header with Cover Image - Fixed Rating Position */}
+        {/* Professional Startup Header with Cover Image */}
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 mb-8">
           {/* Enhanced Header Background with Cover Image */}
           <div className="h-64 relative overflow-hidden rounded-t-2xl">
-            {startup.cover_image_url ? (
+            {startup.cover_image_display_url ? (
               <div className="relative h-full">
                 <img 
-                  src={startup.cover_image_url}
+                  src={startup.cover_image_display_url}
                   alt={`${startup.name} cover`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -396,6 +404,12 @@ export default function StartupDetail() {
                               <Award className="w-3 h-3 mr-1" /> Featured
                             </span>
                           )}
+                          {/* Claimed Badge */}
+                          {startup.is_claimed && startup.claim_verified && (
+                            <span className="px-3 py-1 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-full text-sm font-semibold flex items-center shadow-lg">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Verified
+                            </span>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-4 mb-3">
                           <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/90 backdrop-blur-sm text-slate-800 border border-white/20">
@@ -407,6 +421,11 @@ export default function StartupDetail() {
                           <div className="flex items-center text-white/90 font-medium drop-shadow">
                             <Calendar className="w-4 h-4 mr-1.5" /> Founded {startup.founded_year}
                           </div>
+                          {startup.is_claimed && startup.claim_verified && (
+                            <div className="flex items-center text-white/90 font-medium drop-shadow">
+                              <Shield className="w-4 h-4 mr-1.5" /> Claimed by {startup.claimed_by_username}
+                            </div>
+                          )}
                         </div>
                         <p className="text-white/95 text-lg leading-relaxed drop-shadow max-w-4xl">{startup.description}</p>
                       </div>
@@ -418,13 +437,61 @@ export default function StartupDetail() {
               <div className="h-full bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 relative">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12"></div>
+                
+                <div className="absolute inset-x-0 bottom-0 p-8">
+                  <div className="flex items-end justify-between">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <div className="flex-shrink-0 w-20 h-20 bg-white rounded-2xl shadow-lg border-4 border-white flex items-center justify-center text-3xl font-bold relative">
+                        {startup.logo}
+                        {startup.is_featured && (
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                            <Award className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h1 className="text-3xl font-bold text-white drop-shadow-lg">{startup.name}</h1>
+                          {startup.is_featured && (
+                            <span className="px-3 py-1 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-full text-sm font-semibold flex items-center shadow-lg">
+                              <Award className="w-3 h-3 mr-1" /> Featured
+                            </span>
+                          )}
+                          {/* Claimed Badge */}
+                          {startup.is_claimed && startup.claim_verified && (
+                            <span className="px-3 py-1 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-full text-sm font-semibold flex items-center shadow-lg">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Verified
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 mb-3">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/90 backdrop-blur-sm text-slate-800 border border-white/20">
+                            {startup.industry_detail?.icon} {startup.industry_detail?.name}
+                          </span>
+                          <div className="flex items-center text-white/90 font-medium drop-shadow">
+                            <MapPin className="w-4 h-4 mr-1.5" /> {startup.location}
+                          </div>
+                          <div className="flex items-center text-white/90 font-medium drop-shadow">
+                            <Calendar className="w-4 h-4 mr-1.5" /> Founded {startup.founded_year}
+                          </div>
+                          {startup.is_claimed && startup.claim_verified && (
+                            <div className="flex items-center text-white/90 font-medium drop-shadow">
+                              <Shield className="w-4 h-4 mr-1.5" /> Claimed by {startup.claimed_by_username}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-white/95 text-lg leading-relaxed drop-shadow max-w-4xl">{startup.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
           
-          {/* Content area with proper spacing for rating card */}
+          {/* Content area with rating card */}
           <div className="px-8 pb-8 relative">
-            {/* Rating Card - positioned to extend outside content area */}
+            {/* Rating Card */}
             <div className="absolute top-0 right-8 transform -translate-y-1/2 z-10">
               <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-lg min-w-[280px]">
                 <div className="text-center mb-6">
@@ -471,46 +538,8 @@ export default function StartupDetail() {
               </div>
             </div>
 
-            {/* Main content with proper margin for rating card */}
+            {/* Main content */}
             <div className="pt-16 lg:pr-72">
-              {!startup.cover_image_url && (
-                <div className="flex items-end space-x-6 mb-6">
-                  <div className="flex-shrink-0 w-24 h-24 bg-white rounded-2xl shadow-lg border-4 border-white flex items-center justify-center text-4xl font-bold relative">
-                    {startup.logo}
-                    {startup.is_featured && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                        <Award className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <h1 className="text-3xl font-bold text-slate-900">{startup.name}</h1>
-                      {startup.is_featured && (
-                        <span className="px-3 py-1 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-full text-sm font-semibold flex items-center shadow-sm">
-                          <Award className="w-3 h-3 mr-1" /> Featured
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-4 mb-4">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                        {startup.industry_detail?.icon} {startup.industry_detail?.name}
-                      </span>
-                      <div className="flex items-center text-slate-600 font-medium">
-                        <MapPin className="w-4 h-4 mr-1.5" /> {startup.location}
-                      </div>
-                      <div className="flex items-center text-slate-600 font-medium">
-                        <Calendar className="w-4 h-4 mr-1.5" /> Founded {startup.founded_year}
-                      </div>
-                    </div>
-
-                    <p className="text-slate-700 text-lg leading-relaxed">{startup.description}</p>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8 pt-8 border-t border-slate-200">
                 <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -579,6 +608,24 @@ export default function StartupDetail() {
               <div className="space-y-8">
                 <div>
                   <h3 className="text-2xl font-bold text-slate-900 mb-6">About {startup.name}</h3>
+                  
+                  {/* Claim Status Information */}
+                  {startup.is_claimed && startup.claim_verified && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center">
+                        <Shield className="w-5 h-5 text-green-600 mr-2" />
+                        <div>
+                          <p className="text-green-800 font-medium">
+                            This company profile has been claimed and verified by {startup.claimed_by_username}
+                          </p>
+                          <p className="text-green-600 text-sm mt-1">
+                            Information on this page is maintained by the company representative.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="prose max-w-none text-slate-700 leading-relaxed">
                     <p className="text-lg whitespace-pre-line">{startup.description}</p>
                   </div>
