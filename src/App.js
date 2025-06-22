@@ -1,4 +1,4 @@
-// src/App.js - Fixed to include Footer on all pages
+// src/App.js - Complete App Component with All Routes
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -12,6 +12,9 @@ import StartupUploadForm from './components/StartupUploadForm';
 import StartupEditForm from './components/StartupEditForm';
 import AdminDashboard from './components/AdminDashboard';
 import Jobs from './components/Jobs';
+import JobDetailPage from './components/JobDetailPage';
+import JobEditForm from './components/JobEditForm';
+import JobAdminDashboard from './components/JobAdminDashboard';
 import Profile from './components/Profile';
 import Bookmarks from './components/Bookmarks';
 import Settings from './components/Settings';
@@ -95,6 +98,49 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/auth" />;
 };
 
+// Admin Route Component
+const AdminRoute = ({ children }) => {
+  const authContextValue = useContext(AuthContext);
+  
+  if (!authContextValue) {
+    return <LoadingScreen />;
+  }
+
+  const { isAuthenticated, loading, user } = authContextValue;
+  
+  if (loading) {
+    return <LoadingScreen />;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" />;
+  }
+  
+  if (!user?.is_staff && !user?.is_superuser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-lg shadow-sm">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">You don't have permission to access this admin area.</p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  return children;
+};
+
 // App Routes Component
 const AppRoutes = () => {
   const authContextValue = useContext(AuthContext);
@@ -139,6 +185,7 @@ const AppRoutes = () => {
             } 
           />
           
+          {/* Startup Routes */}
           <Route 
             path="/startups" 
             element={
@@ -191,19 +238,7 @@ const AppRoutes = () => {
             } 
           />
           
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <ErrorBoundary fallback={ErrorFallback}>
-                    <AdminDashboard />
-                  </ErrorBoundary>
-                </Layout>
-              </ProtectedRoute>
-            } 
-          />
-          
+          {/* Job Routes */}
           <Route 
             path="/jobs" 
             element={
@@ -217,6 +252,60 @@ const AppRoutes = () => {
             } 
           />
           
+          <Route 
+            path="/jobs/:id" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ErrorBoundary fallback={ErrorFallback}>
+                    <JobDetailPage />
+                  </ErrorBoundary>
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/jobs/:id/edit" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ErrorBoundary fallback={ErrorFallback}>
+                    <JobEditForm />
+                  </ErrorBoundary>
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Admin Routes */}
+          <Route 
+            path="/admin" 
+            element={
+              <AdminRoute>
+                <Layout>
+                  <ErrorBoundary fallback={ErrorFallback}>
+                    <AdminDashboard />
+                  </ErrorBoundary>
+                </Layout>
+              </AdminRoute>
+            } 
+          />
+          
+          <Route 
+            path="/job-admin" 
+            element={
+              <AdminRoute>
+                <Layout>
+                  <ErrorBoundary fallback={ErrorFallback}>
+                    <JobAdminDashboard />
+                  </ErrorBoundary>
+                </Layout>
+              </AdminRoute>
+            } 
+          />
+          
+          {/* User Profile and Settings Routes */}
           <Route 
             path="/profile" 
             element={
