@@ -1,4 +1,4 @@
-// src/components/Navbar.js - Complete Enhanced Navbar with admin link
+// src/components/Navbar.js - Updated with Job Admin Panel
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -62,16 +62,23 @@ const Navbar = () => {
     { label: 'Help', icon: HelpCircle, path: '/help' },
   ];
 
-  // Add admin menu item dynamically for admin users
+  // Add admin menu items dynamically for admin users
   const getMenuItems = () => {
     const items = [...profileMenuItems];
     
-    // Insert admin link after "View Profile" (index 1)
+    // Insert admin links after "View Profile" (index 1)
     if (user?.is_staff || user?.is_superuser) {
       items.splice(1, 0, { 
         label: 'Admin Panel', 
         icon: Shield, 
         path: '/admin',
+        isAdmin: true 
+      });
+      
+      items.splice(2, 0, { 
+        label: 'Job Admin Panel', 
+        icon: Briefcase, 
+        path: '/job-admin',
         isAdmin: true 
       });
     }
@@ -311,7 +318,7 @@ const Navbar = () => {
                           key={job.id}
                           className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-50 text-gray-900"
                           onClick={() => {
-                            navigate('/jobs', { state: { searchTerm: job.title } });
+                            navigate(`/jobs/${job.id}`);
                             setShowQuickSearch(false);
                           }}
                         >
@@ -577,7 +584,7 @@ const Navbar = () => {
               </div>
 
               <div className="space-y-1">
-                {getMenuItems().slice(0, 4).map((item) => {
+                {getMenuItems().slice(0, 6).map((item) => {
                   const IconComponent = item.icon;
                   return (
                     <Link
