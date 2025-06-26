@@ -1,4 +1,4 @@
-// src/components/Navbar.js - Updated with Job Admin Panel
+// src/components/Navbar.js - Updated with My Claims menu item
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -58,6 +58,7 @@ const Navbar = () => {
     { label: 'View Profile', icon: User, path: '/profile' },
     { label: 'Bookmarks', icon: Bookmark, path: '/bookmarks' },
     { label: 'Activity', icon: Activity, path: '/activity' },
+    { label: 'My Claims', icon: Shield, path: '/my-claims', description: 'Track your startup claims' },
     { label: 'Settings', icon: Settings, path: '/settings' },
     { label: 'Help', icon: HelpCircle, path: '/help' },
   ];
@@ -452,17 +453,29 @@ const Navbar = () => {
                             className={`flex items-center px-4 py-2 text-sm transition-colors ${
                               item.isAdmin 
                                 ? 'text-blue-700 hover:bg-blue-50' 
-                                : 'text-gray-700 hover:bg-gray-50'
+                                : item.path === '/my-claims'
+                                  ? 'text-orange-700 hover:bg-orange-50'
+                                  : 'text-gray-700 hover:bg-gray-50'
                             }`}
                             onClick={() => setIsProfileDropdownOpen(false)}
+                            title={item.description}
                           >
                             <IconComponent className={`w-4 h-4 mr-3 ${
-                              item.isAdmin ? 'text-blue-600' : 'text-gray-400'
+                              item.isAdmin 
+                                ? 'text-blue-600' 
+                                : item.path === '/my-claims'
+                                  ? 'text-orange-600'
+                                  : 'text-gray-400'
                             }`} />
                             {item.label}
                             {item.isAdmin && (
                               <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                                 Admin
+                              </span>
+                            )}
+                            {item.path === '/my-claims' && (
+                              <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                                Claims
                               </span>
                             )}
                           </Link>
@@ -593,17 +606,28 @@ const Navbar = () => {
                       className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                         item.isAdmin 
                           ? 'text-blue-700 hover:bg-blue-50' 
-                          : 'text-gray-700 hover:bg-gray-50'
+                          : item.path === '/my-claims'
+                            ? 'text-orange-700 hover:bg-orange-50'
+                            : 'text-gray-700 hover:bg-gray-50'
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <IconComponent className={`w-4 h-4 mr-3 ${
-                        item.isAdmin ? 'text-blue-600' : 'text-gray-400'
+                        item.isAdmin 
+                          ? 'text-blue-600' 
+                          : item.path === '/my-claims'
+                            ? 'text-orange-600'
+                            : 'text-gray-400'
                       }`} />
                       {item.label}
                       {item.isAdmin && (
                         <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                           Admin
+                        </span>
+                      )}
+                      {item.path === '/my-claims' && (
+                        <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                          Claims
                         </span>
                       )}
                     </Link>
