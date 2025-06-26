@@ -1,9 +1,11 @@
-// src/components/Jobs.js - Professional modern UI
+// src/components/Jobs.js - Professional modern UI with Post Job Button
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import SearchBar from './SearchBar';
 import FilterChips from './FilterChips';
 import JobApplicationModal from './JobApplicationModal';
+import JobUploadForm from './JobUploadForm';
 import useSearch from '../hooks/useSearch';
 import { useNotifications } from './NotificationSystem';
 import { 
@@ -11,10 +13,11 @@ import {
   ExternalLink, Briefcase, AlertCircle, CheckCircle,
   Filter, Grid, List, RefreshCw, Heart, Bookmark,
   Eye, Share2, ChevronRight, Phone, Mail, Globe,
-  Calendar, TrendingUp, Award, Target
+  Calendar, TrendingUp, Award, Target, Plus
 } from 'lucide-react';
 
 const Jobs = () => {
+  const navigate = useNavigate();
   const { success, error } = useNotifications();
   const [filterOptions, setFilterOptions] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -22,6 +25,7 @@ const Jobs = () => {
   const [viewMode, setViewMode] = useState('list');
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [showJobUploadForm, setShowJobUploadForm] = useState(false);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [likedJobs, setLikedJobs] = useState(new Set());
@@ -148,6 +152,14 @@ const Jobs = () => {
     setSelectedJob(null);
   };
 
+  // Handle job upload success
+  const handleJobUploadSuccess = (jobData) => {
+    setShowJobUploadForm(false);
+    success('Job posted successfully! It will be reviewed by our admin team before being published.', 'Success');
+    // Optionally refresh the jobs list
+    refreshJobs();
+  };
+
   // Handle job sharing
   const handleShare = (job) => {
     if (navigator.share) {
@@ -218,10 +230,21 @@ const Jobs = () => {
     const hasApplied = appliedJobs.has(job.id);
     const isBookmarked = bookmarkedJobs.has(job.id);
     const isLiked = likedJobs.has(job.id);
+
+    const handleCardClick = (e) => {
+      // Don't navigate if clicking on buttons or interactive elements
+      if (e.target.closest('button') || e.target.closest('a')) {
+        return;
+      }
+      navigate(`/jobs/${job.id}`);
+    };
     
     if (isGrid) {
       return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+        <div 
+          className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+          onClick={handleCardClick}
+        >
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
@@ -343,7 +366,10 @@ const Jobs = () => {
     } else {
       // List view
       return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+        <div 
+          className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+          onClick={handleCardClick}
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-semibold text-lg">
@@ -478,6 +504,33 @@ const Jobs = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Header with Post Job Button */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Job Opportunities</h1>
+            <p className="text-gray-600 mt-1">Discover your next career opportunity with innovative startups</p>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={refreshJobs}
+              disabled={refreshing}
+              className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            
+            <button
+              onClick={() => setShowJobUploadForm(true)}
+              className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Post a Job
+            </button>
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-6">
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
@@ -744,12 +797,20 @@ const Jobs = () => {
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <button
-                      onClick={refreshJobs}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Refresh Jobs
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={refreshJobs}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Refresh Jobs
+                      </button>
+                      <button
+                        onClick={() => setShowJobUploadForm(true)}
+                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Post the First Job
+                      </button>
+                    </div>
                     <p className="text-sm text-gray-500">
                       Want to be notified of new jobs? <a href="/profile" className="text-blue-600 hover:underline">Set up job alerts</a>
                     </p>
@@ -791,6 +852,13 @@ const Jobs = () => {
         onClose={handleApplicationModalClose}
         job={selectedJob}
         onApplicationSubmitted={handleApplicationSubmitted}
+      />
+
+      {/* Job Upload Form Modal */}
+      <JobUploadForm
+        isOpen={showJobUploadForm}
+        onClose={() => setShowJobUploadForm(false)}
+        onSuccess={handleJobUploadSuccess}
       />
 
       {/* Custom CSS for line clamp */}
