@@ -1,4 +1,4 @@
-// src/components/Startups.js - Updated with submit startup button
+// src/components/Startups.js - Startlinker Modern Minimalistic Design
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -11,7 +11,7 @@ import {
   Building, Zap, Globe, Award, ChevronRight, Target,
   Sparkles, ArrowUp, ArrowDown, Grid3X3, List, Search,
   SlidersHorizontal, RefreshCw, Flame, Rocket, Crown,
-  AlertCircle, Plus, Upload
+  AlertCircle, Plus, Upload, ExternalLink
 } from 'lucide-react';
 
 const Startups = () => {
@@ -154,13 +154,13 @@ const Startups = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-lg shadow-sm">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-sm">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Startups</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
           >
             Try Again
           </button>
@@ -183,7 +183,7 @@ const Startups = () => {
           <div className="mt-6 md:mt-0">
             <Link
               to="/startups/new"
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <Plus className="w-5 h-5 mr-2" />
               Submit Your Startup
@@ -193,7 +193,7 @@ const Startups = () => {
 
         {/* Search Bar */}
         <div className="mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <SearchBar
               value={filters.search || ''}
               onChange={handleSearch}
@@ -210,12 +210,12 @@ const Startups = () => {
         {/* Filter Controls */}
         <div className="mb-6 space-y-4">
           {/* Control Bar */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`flex items-center px-4 py-2.5 rounded-xl font-medium transition-colors ${
                     showFilters 
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -230,13 +230,13 @@ const Startups = () => {
                   )}
                 </button>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-xl">
                   <button
                     onClick={() => setViewMode('grid')}
                     className={`p-2 rounded-lg transition-colors ${
                       viewMode === 'grid' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     <Grid3X3 className="w-4 h-4" />
@@ -245,15 +245,15 @@ const Startups = () => {
                     onClick={() => setViewMode('list')}
                     className={`p-2 rounded-lg transition-colors ${
                       viewMode === 'list' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     <List className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-xl">
                   {loading ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
@@ -276,7 +276,7 @@ const Startups = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {sortOptions.map(option => (
                     <option key={option.value} value={option.value}>
@@ -290,7 +290,7 @@ const Startups = () => {
 
           {/* Active Filter Chips */}
           {Object.keys(filters).length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
               <FilterChips
                 filters={filters}
                 onRemoveFilter={removeFilter}
@@ -302,9 +302,9 @@ const Startups = () => {
 
           {/* Advanced Filters Panel */}
           {showFilters && filterOptions && (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Filter className="w-5 h-5 text-gray-600" />
+                <Sparkles className="w-5 h-5 text-blue-600" />
                 <h3 className="text-lg font-semibold text-gray-900">Advanced Filters</h3>
               </div>
 
@@ -316,7 +316,7 @@ const Startups = () => {
                   <select
                     value={filters.industry || ''}
                     onChange={(e) => handleFilterChange('industry', e.target.value || null)}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">All Industries</option>
                     {filterOptions.industries.map(industry => (
@@ -333,7 +333,7 @@ const Startups = () => {
                   <select
                     value={filters.location || ''}
                     onChange={(e) => handleFilterChange('location', e.target.value || null)}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">All Locations</option>
                     {filterOptions.locations.map(location => (
@@ -359,7 +359,7 @@ const Startups = () => {
                         handleFilterChange('max_employees', null);
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Any Size</option>
                     {filterOptions.employee_ranges.map(range => (
@@ -376,7 +376,7 @@ const Startups = () => {
                   <select
                     value={filters.min_rating || ''}
                     onChange={(e) => handleFilterChange('min_rating', e.target.value || null)}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Any Rating</option>
                     <option value="4">4+ Stars</option>
@@ -389,27 +389,27 @@ const Startups = () => {
               </div>
 
               {/* Checkboxes Row */}
-              <div className="mt-6 flex flex-wrap gap-6">
-                <label className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="mt-6 flex flex-wrap gap-4">
+                <label className="flex items-center space-x-3 p-3 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer">
                   <input
                     type="checkbox"
                     checked={filters.featured === 'true'}
                     onChange={(e) => handleFilterChange('featured', e.target.checked ? 'true' : null)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500"
                   />
-                  <Crown className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm font-medium text-gray-700">Featured only</span>
+                  <Crown className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium text-amber-700">Featured only</span>
                 </label>
 
-                <label className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                <label className="flex items-center space-x-3 p-3 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors cursor-pointer">
                   <input
                     type="checkbox"
                     checked={filters.has_funding === 'true'}
                     onChange={(e) => handleFilterChange('has_funding', e.target.checked ? 'true' : null)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
                   />
                   <DollarSign className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-gray-700">Has funding</span>
+                  <span className="text-sm font-medium text-green-700">Has funding</span>
                 </label>
               </div>
             </div>
@@ -426,30 +426,30 @@ const Startups = () => {
             <Link
               key={startup.id}
               to={`/startups/${startup.id}`}
-              className="group block bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
+              className="group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200"
             >
               <div className="p-6">
                 {/* Header */}
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="text-2xl p-3 bg-gray-50 rounded-lg">
+                  <div className="text-2xl p-3 bg-gray-50 rounded-xl group-hover:bg-gray-100 transition-colors">
                     {startup.logo}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {startup.name}
                       </h3>
                       {startup.is_featured && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
                           Featured
                         </span>
                       )}
                     </div>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
                       {startup.industry_name}
                     </span>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-gray-400 transition-colors" />
                 </div>
                 
                 {/* Description */}
@@ -466,7 +466,7 @@ const Startups = () => {
                     <span>{startup.employee_count} employees</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Star className="w-4 h-4 text-yellow-500" />
+                    <Star className="w-4 h-4 text-amber-500" />
                     <span>
                       {startup.average_rating?.toFixed(1) || 'N/A'} ({startup.total_ratings})
                     </span>
@@ -479,10 +479,10 @@ const Startups = () => {
 
                 {/* Funding Info */}
                 {startup.funding_amount && (
-                  <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
                     <div className="flex items-center space-x-2 mb-1">
                       <DollarSign className="w-4 h-4 text-green-600" />
-                      <span className="font-medium text-green-800 text-sm">Funding: {startup.funding_amount}</span>
+                      <span className="font-semibold text-green-800 text-sm">Funding: {startup.funding_amount}</span>
                     </div>
                     {startup.valuation && (
                       <p className="text-xs text-green-700">Valued at {startup.valuation}</p>
@@ -512,8 +512,8 @@ const Startups = () => {
                 )}
                 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="flex items-center space-x-2">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -521,7 +521,7 @@ const Startups = () => {
                         handleLike(startup.id, startup.is_liked);
                       }}
                       disabled={likingStates[startup.id]}
-                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                         startup.is_liked
                           ? 'bg-red-100 text-red-700'
                           : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
@@ -542,7 +542,7 @@ const Startups = () => {
                         handleBookmark(startup.id, startup.is_bookmarked);
                       }}
                       disabled={bookmarkingStates[startup.id]}
-                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                         startup.is_bookmarked
                           ? 'bg-blue-100 text-blue-700'
                           : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
@@ -559,8 +559,9 @@ const Startups = () => {
                     </button>
                   </div>
 
-                  <div className="text-xs text-gray-500">
-                    View Details
+                  <div className="text-xs text-gray-500 flex items-center space-x-1">
+                    <span>View Details</span>
+                    <ExternalLink className="w-3 h-3" />
                   </div>
                 </div>
               </div>
@@ -571,7 +572,7 @@ const Startups = () => {
         {/* Loading State */}
         {loading && startups.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 border-t-blue-600 mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-200 border-t-blue-600 mb-4"></div>
             <p className="text-gray-600">Discovering amazing startups...</p>
           </div>
         )}
@@ -579,20 +580,20 @@ const Startups = () => {
         {/* Empty State */}
         {!loading && startups.length === 0 && (
           <div className="text-center py-12">
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 max-w-md mx-auto">
-              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md mx-auto">
+              <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No startups found</h3>
               <p className="text-gray-600 mb-6">We couldn't find any startups matching your criteria. Try adjusting your search or filters.</p>
               <div className="space-y-3">
                 <button
                   onClick={resetFilters}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
                 >
                   Clear all filters
                 </button>
                 <button
                   onClick={() => handleSearch('')}
-                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="w-full px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
                 >
                   Browse all startups
                 </button>
@@ -606,7 +607,7 @@ const Startups = () => {
           <div className="flex justify-center mt-8">
             <button
               onClick={loadMore}
-              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Load More Startups</span>
@@ -620,8 +621,8 @@ const Startups = () => {
         {/* Loading More Indicator */}
         {loading && startups.length > 0 && (
           <div className="flex justify-center mt-8">
-            <div className="flex items-center space-x-3 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600"></div>
+            <div className="flex items-center space-x-3 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-200 border-t-blue-600"></div>
               <span className="text-gray-600">Loading more startups...</span>
             </div>
           </div>
