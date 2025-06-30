@@ -1,4 +1,4 @@
-// src/components/Navbar.js - Updated with My Claims menu item
+// src/components/Navbar.js - Startlinker Modern Minimalistic Design
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -8,7 +8,8 @@ import {
   Home, Building, Briefcase, User, LogOut, Search, 
   Menu, X, ChevronDown, Settings, HelpCircle,
   Star, Bookmark, Activity, TrendingUp, Bell,
-  MessageCircle, Award, Shield, CreditCard
+  MessageCircle, Award, Shield, CreditCard,
+  Link as LinkIcon
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -30,32 +31,26 @@ const Navbar = () => {
   const navItems = [
     { 
       path: '/', 
-      label: 'Dashboard', 
+      label: 'Home', 
       icon: Home,
-      description: 'Overview and insights'
+      description: 'Dashboard overview'
     },
     { 
       path: '/startups', 
       label: 'Startups', 
       icon: Building,
-      description: 'Discover innovative companies'
+      description: 'Discover companies'
     },
     { 
       path: '/jobs', 
       label: 'Jobs', 
       icon: Briefcase,
-      description: 'Find career opportunities'
-    },
-    { 
-      path: '/profile', 
-      label: 'Profile', 
-      icon: User,
-      description: 'Your account and activity'
+      description: 'Find opportunities'
     }
   ];
 
   const profileMenuItems = [
-    { label: 'View Profile', icon: User, path: '/profile' },
+    { label: 'Profile', icon: User, path: '/profile' },
     { label: 'Bookmarks', icon: Bookmark, path: '/bookmarks' },
     { label: 'Activity', icon: Activity, path: '/activity' },
     { label: 'My Claims', icon: Shield, path: '/my-claims', description: 'Track your startup claims' },
@@ -67,7 +62,7 @@ const Navbar = () => {
   const getMenuItems = () => {
     const items = [...profileMenuItems];
     
-    // Insert admin links after "View Profile" (index 1)
+    // Insert admin links after "Profile" (index 1)
     if (user?.is_staff || user?.is_superuser) {
       items.splice(1, 0, { 
         label: 'Admin Panel', 
@@ -77,7 +72,7 @@ const Navbar = () => {
       });
       
       items.splice(2, 0, { 
-        label: 'Job Admin Panel', 
+        label: 'Job Admin', 
         icon: Briefcase, 
         path: '/job-admin',
         isAdmin: true 
@@ -205,24 +200,24 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-40 backdrop-blur-sm bg-white/95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-4">
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">S</span>
+          <div className="flex items-center space-x-8">
+            <Link to="/" className="flex items-center space-x-3 group">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                <LinkIcon className="w-4 h-4 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  StartupHub
+                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Startlinker
                 </h1>
               </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-1 ml-8">
+            <div className="hidden lg:flex items-center space-x-1">
               {navItems.map((item) => {
                 const IconComponent = item.icon;
                 const isActive = isActivePath(item.path);
@@ -231,10 +226,10 @@ const Navbar = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                        ? 'bg-blue-50 text-blue-700 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                     title={item.description}
                   >
@@ -262,15 +257,15 @@ const Navbar = () => {
                     type="text"
                     value={quickSearchQuery}
                     onChange={(e) => setQuickSearchQuery(e.target.value)}
-                    placeholder="Quick search startups, jobs..."
-                    className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="Search startups, jobs..."
+                    className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white text-sm transition-all duration-200"
                   />
                   {quickSearchQuery && (
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                       <button
                         type="button"
                         onClick={handleQuickSearchClear}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -283,22 +278,22 @@ const Navbar = () => {
               {showQuickSearch && (quickSearchResults.startups.length > 0 || quickSearchResults.jobs.length > 0) && (
                 <div 
                   ref={dropdownRef}
-                  className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-80 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto border border-gray-200"
+                  className="absolute z-10 mt-2 w-full bg-white shadow-xl max-h-80 rounded-xl py-2 text-base ring-1 ring-black ring-opacity-5 overflow-auto border border-gray-100"
                 >
                   {quickSearchResults.startups.length > 0 && (
                     <div>
-                      <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
                         Startups
                       </div>
                       {quickSearchResults.startups.map((startup) => (
                         <Link
                           key={startup.id}
                           to={`/startups/${startup.id}`}
-                          className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-50 text-gray-900"
+                          className="cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors"
                           onClick={() => setShowQuickSearch(false)}
                         >
                           <div className="flex items-center">
-                            <span className="text-2xl mr-3">{startup.logo}</span>
+                            <span className="text-lg mr-3">{startup.logo}</span>
                             <div>
                               <span className="block font-medium">{startup.name}</span>
                               <span className="block text-sm text-gray-500">{startup.industry_name}</span>
@@ -311,13 +306,13 @@ const Navbar = () => {
 
                   {quickSearchResults.jobs.length > 0 && (
                     <div>
-                      <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
                         Jobs
                       </div>
                       {quickSearchResults.jobs.map((job) => (
                         <div
                           key={job.id}
-                          className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-50 text-gray-900"
+                          className="cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors"
                           onClick={() => {
                             navigate(`/jobs/${job.id}`);
                             setShowQuickSearch(false);
@@ -336,10 +331,10 @@ const Navbar = () => {
                   )}
 
                   {/* Search All */}
-                  <div className="border-t border-gray-100 px-3 py-2">
+                  <div className="border-t border-gray-50 px-4 py-2">
                     <button
                       onClick={handleQuickSearchSubmit}
-                      className="flex items-center w-full text-left py-2 text-sm text-blue-600 hover:text-blue-700"
+                      className="flex items-center w-full text-left py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Search all for "{quickSearchQuery}"
@@ -351,7 +346,7 @@ const Navbar = () => {
           </div>
 
           {/* Right side items */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {/* Notification Bell */}
             <NotificationBell />
 
@@ -359,9 +354,9 @@ const Navbar = () => {
             <div className="relative" ref={profileDropdownRef}>
               <button
                 onClick={toggleProfileDropdown}
-                className="flex items-center space-x-3 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex items-center space-x-2 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 p-1.5 hover:bg-gray-50 transition-colors"
               >
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
                   <span className="text-white font-medium text-sm">
                     {getUserInitials()}
                   </span>
@@ -369,12 +364,11 @@ const Navbar = () => {
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium text-gray-900">{getUserDisplayName()}</div>
                   {user?.is_premium && (
-                    <div className="text-xs text-yellow-600 flex items-center">
+                    <div className="text-xs text-amber-600 flex items-center">
                       <Award className="w-3 h-3 mr-1" />
                       Premium
                     </div>
                   )}
-                  {/* Show admin badge */}
                   {(user?.is_staff || user?.is_superuser) && (
                     <div className="text-xs text-blue-600 flex items-center">
                       <Shield className="w-3 h-3 mr-1" />
@@ -392,11 +386,11 @@ const Navbar = () => {
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsProfileDropdownOpen(false)} 
                   />
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20">
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20">
                     {/* Profile Header */}
-                    <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="px-4 py-3 border-b border-gray-50">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
                           <span className="text-white font-medium">
                             {getUserInitials()}
                           </span>
@@ -406,7 +400,7 @@ const Navbar = () => {
                           <div className="text-sm text-gray-500">{user?.email}</div>
                           <div className="flex items-center space-x-3 mt-1">
                             {user?.is_premium && (
-                              <div className="text-xs text-yellow-600 flex items-center">
+                              <div className="text-xs text-amber-600 flex items-center">
                                 <Award className="w-3 h-3 mr-1" />
                                 Premium
                               </div>
@@ -424,7 +418,7 @@ const Navbar = () => {
 
                     {/* User Stats */}
                     {userStats && (
-                      <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="px-4 py-3 border-b border-gray-50">
                         <div className="grid grid-cols-3 gap-4 text-center">
                           <div>
                             <div className="text-lg font-semibold text-gray-900">{userStats.totals?.bookmarks || 0}</div>
@@ -450,7 +444,7 @@ const Navbar = () => {
                           <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex items-center px-4 py-2 text-sm transition-colors ${
+                            className={`flex items-center px-4 py-2.5 text-sm transition-colors ${
                               item.isAdmin 
                                 ? 'text-blue-700 hover:bg-blue-50' 
                                 : item.path === '/my-claims'
@@ -485,13 +479,13 @@ const Navbar = () => {
 
                     {/* Upgrade to Premium (if not premium) */}
                     {!user?.is_premium && (
-                      <div className="px-4 py-3 border-t border-gray-100">
+                      <div className="px-4 py-3 border-t border-gray-50">
                         <button
                           onClick={() => {
                             navigate('/settings');
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center justify-center px-3 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-colors"
+                          className="w-full flex items-center justify-center px-3 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl hover:from-amber-500 hover:to-orange-600 transition-colors font-medium"
                         >
                           <Award className="w-4 h-4 mr-2" />
                           Upgrade to Premium
@@ -500,10 +494,10 @@ const Navbar = () => {
                     )}
 
                     {/* Logout */}
-                    <div className="px-4 py-2 border-t border-gray-100">
+                    <div className="px-4 py-2 border-t border-gray-50">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="flex items-center w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                       >
                         <LogOut className="w-4 h-4 mr-3" />
                         Sign Out
@@ -517,7 +511,7 @@ const Navbar = () => {
             {/* Mobile menu button */}
             <button
               onClick={toggleMobileMenu}
-              className="lg:hidden p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors"
             >
               {isMobileMenuOpen ? (
                 <X className="w-5 h-5" />
@@ -530,7 +524,7 @@ const Navbar = () => {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 py-4">
+          <div className="lg:hidden border-t border-gray-100 py-4">
             {/* Mobile Search */}
             <div className="px-4 mb-4 md:hidden">
               <form onSubmit={handleQuickSearchSubmit}>
@@ -543,7 +537,7 @@ const Navbar = () => {
                     value={quickSearchQuery}
                     onChange={(e) => setQuickSearchQuery(e.target.value)}
                     placeholder="Search startups, jobs..."
-                    className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="block w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all"
                   />
                 </div>
               </form>
@@ -559,10 +553,10 @@ const Navbar = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -577,9 +571,9 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Profile Section */}
-            <div className="mt-6 pt-6 border-t border-gray-200 px-4">
+            <div className="mt-6 pt-6 border-t border-gray-100 px-4">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
                   <span className="text-white font-medium">
                     {getUserInitials()}
                   </span>
@@ -603,7 +597,7 @@ const Navbar = () => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
+                      className={`flex items-center px-3 py-2.5 text-sm rounded-xl transition-colors ${
                         item.isAdmin 
                           ? 'text-blue-700 hover:bg-blue-50' 
                           : item.path === '/my-claims'
@@ -636,7 +630,7 @@ const Navbar = () => {
                 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex items-center w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                 >
                   <LogOut className="w-4 h-4 mr-3" />
                   Sign Out
