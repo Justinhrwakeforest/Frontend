@@ -1,52 +1,78 @@
-// src/components/SearchBar.js - Fixed version with proper search handling
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Clock, TrendingUp } from 'lucide-react';
+// src/components/SearchBar.js - Enhanced Production-Ready Version
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Search, X, Clock, TrendingUp, Command, ArrowUp } from 'lucide-react';
 
 const SearchBar = ({ 
   value = '', 
   onChange, 
   onClear, 
-  onSearch, // Function to handle search submission
+  onSearch,
   placeholder = 'Search...', 
   suggestions = [],
   loading = false,
   className = '',
   showRecentSearches = true,
-  showTrendingSearches = true
+  showTrendingSearches = true,
+  maxRecentSearches = 5
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
-  const [trendingSearches] = useState([
-    'AI startups', 'FinTech', 'Remote jobs', 'Series A', 'Healthcare AI',
-    'E-commerce', 'Machine Learning', 'Blockchain', 'SaaS', 'GreenTech'
-  ]);
+  const [inputValue, setInputValue] = useState(value);
+  
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
 
+  // Trending searches - could be fetched from API
+  const trendingSearches = useMemo(() => [
+    'AI startups', 'FinTech', 'Remote jobs', 'Series A', 'Healthcare AI',
+    'E-commerce', 'Machine Learning', 'Blockchain', 'SaaS', 'GreenTech'
+  ], []);
+
+  // Load recent searches from localStorage on mount
   useEffect(() => {
-    // Load recent searches from localStorage
-    const stored = localStorage.getItem('recentSearches');
-    if (stored) {
-      try {
-        setRecentSearches(JSON.parse(stored));
-      } catch (error) {
-        console.error('Error loading recent searches:', error);
-        setRecentSearches([]);
+    try {
+      const stored = localStorage.getItem('startup_recent_searches');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed.slice(0, maxRecentSearches));
+        }
       }
+    } catch (error) {
+      console.error('Error loading recent searches:', error);
+      setRecentSearches([]);
     }
-  }, []);
+  }, [maxRecentSearches]);
 
-  // Only update dropdown state when focused and content changes
+  // Sync input value with prop value
   useEffect(() => {
-    if (isFocused) {
-      const shouldShow = (suggestions.length > 0 && value.length > 0) || 
-                         (value.length === 0 && (recentSearches.length > 0 || trendingSearches.length > 0));
-      setIsOpen(shouldShow);
+    setInputValue(value);
+  }, [value]);
+
+  // Determine what to show in dropdown
+  const shouldShowDropdown = useMemo(() => {
+    if (!isFocused) return false;
+    
+    // Show suggestions if we have input and suggestions
+    if (inputValue.length > 0 && suggestions.length > 0) return true;
+    
+    // Show recent/trending if no input and we have items to show
+    if (inputValue.length === 0) {
+      return (showRecentSearches && recentSearches.length > 0) || 
+             (showTrendingSearches && trendingSearches.length > 0);
     }
+    
+    return false;
+  }, [isFocused, inputValue, suggestions, showRecentSearches, recentSearches, showTrendingSearches, trendingSearches]);
+
+  // Update dropdown state
+  useEffect(() => {
+    setIsOpen(shouldShowDropdown);
     setHighlightedIndex(-1);
-  }, [suggestions, value, recentSearches, trendingSearches, isFocused]);
+  }, [shouldShowDropdown]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -62,28 +88,39 @@ const SearchBar = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const saveRecentSearch = (searchTerm) => {
+  // Save search to recent searches
+  const saveRecentSearch = useCallback((searchTerm) => {
     if (!searchTerm.trim()) return;
     
-    const updatedRecents = [
-      searchTerm,
-      ...recentSearches.filter(item => item !== searchTerm)
-    ].slice(0, 5); // Keep only 5 recent searches
-    
-    setRecentSearches(updatedRecents);
-    localStorage.setItem('recentSearches', JSON.stringify(updatedRecents));
-  };
+    try {
+      const updatedRecents = [
+        searchTerm.trim(),
+        ...recentSearches.filter(item => item !== searchTerm.trim())
+      ].slice(0, maxRecentSearches);
+      
+      setRecentSearches(updatedRecents);
+      localStorage.setItem('startup_recent_searches', JSON.stringify(updatedRecents));
+    } catch (error) {
+      console.error('Error saving recent search:', error);
+    }
+  }, [recentSearches, maxRecentSearches]);
 
-  const clearRecentSearches = () => {
+  const clearRecentSearches = useCallback(() => {
     setRecentSearches([]);
-    localStorage.removeItem('recentSearches');
-  };
+    try {
+      localStorage.removeItem('startup_recent_searches');
+    } catch (error) {
+      console.error('Error clearing recent searches:', error);
+    }
+  }, []);
 
-  const executeSearch = (searchTerm) => {
+  const executeSearch = useCallback((searchTerm) => {
     if (!searchTerm.trim()) return;
+    
+    const trimmedTerm = searchTerm.trim();
     
     // Save to recent searches
-    saveRecentSearch(searchTerm);
+    saveRecentSearch(trimmedTerm);
     
     // Close dropdown
     setIsOpen(false);
@@ -91,22 +128,82 @@ const SearchBar = ({
     setHighlightedIndex(-1);
     
     // Update input value
-    onChange(searchTerm);
+    setInputValue(trimmedTerm);
     
-    // Execute search if handler provided
-    if (onSearch) {
-      onSearch(searchTerm);
+    // Execute search
+    if (onChange) {
+      onChange(trimmedTerm);
     }
-  };
+    
+    if (onSearch) {
+      onSearch(trimmedTerm);
+    }
+    
+    // Blur input to hide mobile keyboard
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+  }, [onChange, onSearch, saveRecentSearch]);
 
-  const handleKeyDown = (e) => {
-    if (!isOpen) return;
+  const handleInputChange = useCallback((e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    if (onChange) {
+      onChange(newValue);
+    }
+  }, [onChange]);
 
-    const allItems = [
-      ...suggestions,
-      ...(value.length === 0 ? recentSearches : []),
-      ...(value.length === 0 ? trendingSearches : [])
-    ];
+  const handleInputFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleInputBlur = useCallback((e) => {
+    // Only blur if not clicking within the dropdown
+    if (!dropdownRef.current?.contains(e.relatedTarget)) {
+      setIsFocused(false);
+      setIsOpen(false);
+    }
+  }, []);
+
+  const handleClear = useCallback(() => {
+    setInputValue('');
+    setIsOpen(false);
+    setIsFocused(false);
+    if (onClear) {
+      onClear();
+    }
+    if (onChange) {
+      onChange('');
+    }
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [onClear, onChange]);
+
+  // Get all items for keyboard navigation
+  const allItems = useMemo(() => {
+    if (inputValue.length > 0 && suggestions.length > 0) {
+      return suggestions;
+    }
+    
+    if (inputValue.length === 0) {
+      return [
+        ...(showRecentSearches ? recentSearches : []),
+        ...(showTrendingSearches ? trendingSearches : [])
+      ];
+    }
+    
+    return [];
+  }, [inputValue, suggestions, showRecentSearches, recentSearches, showTrendingSearches, trendingSearches]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (!isOpen || allItems.length === 0) {
+      if (e.key === 'Enter' && inputValue.trim()) {
+        e.preventDefault();
+        executeSearch(inputValue);
+      }
+      return;
+    }
 
     switch (e.key) {
       case 'ArrowDown':
@@ -123,58 +220,50 @@ const SearchBar = ({
         break;
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0) {
-          const selectedItem = allItems[highlightedIndex];
-          executeSearch(selectedItem);
-        } else if (value.trim()) {
-          executeSearch(value.trim());
+        if (highlightedIndex >= 0 && highlightedIndex < allItems.length) {
+          executeSearch(allItems[highlightedIndex]);
+        } else if (inputValue.trim()) {
+          executeSearch(inputValue);
         }
         break;
       case 'Escape':
+        e.preventDefault();
         setIsOpen(false);
         setIsFocused(false);
         setHighlightedIndex(-1);
+        if (inputRef.current) {
+          inputRef.current.blur();
+        }
         break;
     }
-  };
+  }, [isOpen, allItems, highlightedIndex, inputValue, executeSearch]);
 
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  const handleBlur = (e) => {
-    // Only blur if not clicking within the dropdown
-    if (!dropdownRef.current?.contains(e.relatedTarget)) {
-      setIsFocused(false);
-      setIsOpen(false);
-    }
-  };
-
-  const handleItemClick = (searchTerm, e) => {
+  const handleItemClick = useCallback((searchTerm, e) => {
     e.preventDefault();
     e.stopPropagation();
     executeSearch(searchTerm);
-  };
+  }, [executeSearch]);
 
   const renderDropdownContent = () => {
-    if (value.length > 0 && suggestions.length > 0) {
+    if (inputValue.length > 0 && suggestions.length > 0) {
       // Show suggestions when typing
       return (
         <div>
-          <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
+          <div className="px-4 py-3 text-xs font-semibold text-gray-500 border-b border-gray-100 bg-gray-50">
             Search Suggestions
           </div>
           {suggestions.map((suggestion, index) => (
             <div
               key={`suggestion-${index}`}
-              className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-50 ${
+              className={`cursor-pointer select-none relative py-3 px-4 hover:bg-blue-50 transition-colors ${
                 index === highlightedIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
               }`}
               onMouseDown={(e) => handleItemClick(suggestion, e)}
+              onMouseEnter={() => setHighlightedIndex(index)}
             >
               <div className="flex items-center">
-                <Search className="w-4 h-4 text-gray-400 mr-3" />
-                <span className="block truncate font-normal">{suggestion}</span>
+                <Search className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                <span className="block truncate font-medium">{suggestion}</span>
               </div>
             </div>
           ))}
@@ -182,47 +271,51 @@ const SearchBar = ({
       );
     }
 
-    if (value.length === 0) {
+    if (inputValue.length === 0) {
       // Show recent and trending when no input
       return (
         <div>
           {/* Recent Searches */}
           {showRecentSearches && recentSearches.length > 0 && (
             <div>
-              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-500">Recent Searches</span>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <span className="text-xs font-semibold text-gray-500">Recent Searches</span>
                 <button
                   onMouseDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     clearRecentSearches();
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-700"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   Clear
                 </button>
               </div>
-              {recentSearches.map((search, index) => (
-                <div
-                  key={`recent-${index}`}
-                  className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-50 ${
-                    index === highlightedIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
-                  }`}
-                  onMouseDown={(e) => handleItemClick(search, e)}
-                >
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 text-gray-400 mr-3" />
-                    <span className="block truncate font-normal">{search}</span>
+              {recentSearches.map((search, index) => {
+                const adjustedIndex = index;
+                return (
+                  <div
+                    key={`recent-${index}`}
+                    className={`cursor-pointer select-none relative py-3 px-4 hover:bg-blue-50 transition-colors ${
+                      adjustedIndex === highlightedIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                    }`}
+                    onMouseDown={(e) => handleItemClick(search, e)}
+                    onMouseEnter={() => setHighlightedIndex(adjustedIndex)}
+                  >
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                      <span className="block truncate font-medium">{search}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           {/* Trending Searches */}
-          {showTrendingSearches && (
+          {showTrendingSearches && trendingSearches.length > 0 && (
             <div>
-              <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-100">
+              <div className="px-4 py-3 text-xs font-semibold text-gray-500 border-b border-gray-100 bg-gray-50">
                 Trending Searches
               </div>
               {trendingSearches.map((trending, index) => {
@@ -230,14 +323,15 @@ const SearchBar = ({
                 return (
                   <div
                     key={`trending-${index}`}
-                    className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-50 ${
+                    className={`cursor-pointer select-none relative py-3 px-4 hover:bg-blue-50 transition-colors ${
                       adjustedIndex === highlightedIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
                     }`}
                     onMouseDown={(e) => handleItemClick(trending, e)}
+                    onMouseEnter={() => setHighlightedIndex(adjustedIndex)}
                   >
                     <div className="flex items-center">
-                      <TrendingUp className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="block truncate font-normal">{trending}</span>
+                      <TrendingUp className="w-4 h-4 text-gray-400 mr-3 flex-shrink-0" />
+                      <span className="block truncate font-medium">{trending}</span>
                     </div>
                   </div>
                 );
@@ -254,34 +348,34 @@ const SearchBar = ({
   return (
     <div className={`relative ${className}`}>
       <div className="relative" ref={searchRef}>
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           {loading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600"></div>
           ) : (
             <Search className="h-5 w-5 text-gray-400" />
           )}
         </div>
         
         <input
+          ref={inputRef}
           type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={inputValue}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           placeholder={placeholder}
-          className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+          className="block w-full pl-12 pr-12 py-4 border border-gray-300 rounded-2xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg text-base"
+          autoComplete="off"
+          spellCheck="false"
         />
         
-        {value && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+        {inputValue && (
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
             <button
-              onClick={() => {
-                onClear();
-                setIsOpen(false);
-                setIsFocused(false);
-              }}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={handleClear}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+              type="button"
             >
               <X className="h-5 w-5" />
             </button>
@@ -293,24 +387,41 @@ const SearchBar = ({
       {isOpen && (
         <div 
           ref={dropdownRef}
-          className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-80 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none border border-gray-200"
+          className="absolute z-20 mt-2 w-full bg-white shadow-2xl max-h-80 rounded-2xl py-2 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none border border-gray-100"
         >
           {renderDropdownContent()}
           
-          {/* Quick Actions */}
-          {value.length > 0 && (
-            <div className="border-t border-gray-100 px-3 py-2">
+          {/* Quick Search Action */}
+          {inputValue.length > 0 && (
+            <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
               <button
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  executeSearch(value);
+                  executeSearch(inputValue);
                 }}
-                className="flex items-center w-full text-left py-2 text-sm text-blue-600 hover:text-blue-700"
+                className="flex items-center w-full text-left py-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors rounded-lg hover:bg-blue-50 px-3"
               >
                 <Search className="w-4 h-4 mr-2" />
-                Search for "{value}"
+                <span>Search for "{inputValue}"</span>
+                <div className="ml-auto flex items-center space-x-1 text-xs text-gray-400">
+                  <ArrowUp className="w-3 h-3" />
+                  <span>Enter</span>
+                </div>
               </button>
+            </div>
+          )}
+
+          {/* Keyboard shortcuts hint */}
+          {inputValue.length === 0 && (recentSearches.length > 0 || trendingSearches.length > 0) && (
+            <div className="border-t border-gray-100 px-4 py-2 bg-gray-50">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>Use ↑↓ to navigate, Enter to select, Esc to close</span>
+                <div className="flex items-center space-x-1">
+                  <Command className="w-3 h-3" />
+                  <span>K</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
