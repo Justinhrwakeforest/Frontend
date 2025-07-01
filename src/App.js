@@ -1,4 +1,4 @@
-// src/App.js - Complete App Component with All Routes
+// src/App.js - Complete App Component with All Routes including My Claims
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -20,6 +20,7 @@ import Bookmarks from './components/Bookmarks';
 import Settings from './components/Settings';
 import Activity from './components/Activity';
 import Help from './components/Help';
+import MyClaims from './components/MyClaims';
 import Layout from './components/Layout';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -365,6 +366,20 @@ const AppRoutes = () => {
                 <Layout>
                   <ErrorBoundary fallback={ErrorFallback}>
                     <Help />
+                  </ErrorBoundary>
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* My Claims Route - NEW */}
+          <Route 
+            path="/my-claims" 
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ErrorBoundary fallback={ErrorFallback}>
+                    <MyClaims />
                   </ErrorBoundary>
                 </Layout>
               </ProtectedRoute>
