@@ -1,4 +1,4 @@
-// src/components/ClaimStartupButton.js - Component for claiming startups
+// src/components/ClaimStartupButton.js - FIXED VERSION
 import React, { useState } from 'react';
 import { Shield, Building, Mail, User, MessageSquare, X, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../services/api';
@@ -13,6 +13,8 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
     position: '',
     reason: ''
   });
+
+  console.log('🔍 ClaimStartupButton props:', { startup, userClaimRequest });
 
   // Don't show claim button if startup is already claimed and verified
   if (startup.is_claimed && startup.claim_verified) {
@@ -92,8 +94,11 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('🚀 Submitting claim request with data:', formData);
+    
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
+      console.log('❌ Validation errors:', validationErrors);
       setError(validationErrors);
       return;
     }
@@ -102,7 +107,10 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
     setError(null);
 
     try {
+      console.log('📤 Making API request to:', `/startups/${startup.id}/claim/`);
       const response = await api.post(`/startups/${startup.id}/claim/`, formData);
+      
+      console.log('✅ Claim request submitted successfully:', response.data);
       
       setSuccess(true);
       setTimeout(() => {
@@ -111,12 +119,22 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
         if (onClaimUpdate) {
           onClaimUpdate(response.data);
         }
+        // Reset form
+        setFormData({ email: '', position: '', reason: '' });
       }, 2000);
       
     } catch (error) {
-      console.error('Error submitting claim request:', error);
+      console.error('❌ Error submitting claim request:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
       if (error.response?.data) {
-        setError(error.response.data);
+        // Handle specific validation errors from backend
+        if (typeof error.response.data === 'object' && !error.response.data.message) {
+          setError(error.response.data);
+        } else {
+          setError({ general: error.response.data.message || error.response.data.error || 'Failed to submit claim request. Please try again.' });
+        }
       } else {
         setError({ general: 'Failed to submit claim request. Please try again.' });
       }
