@@ -1,6 +1,6 @@
-// src/components/ClaimStartupButton.js - FIXED VERSION
-import React, { useState } from 'react';
-import { Shield, Building, Mail, User, MessageSquare, X, CheckCircle, AlertCircle } from 'lucide-react';
+// src/components/ClaimStartupButton.js - Enhanced Production-Ready Version
+import React, { useState, useCallback, useMemo } from 'react';
+import { Shield, Building, Mail, User, MessageSquare, X, CheckCircle, AlertCircle, Clock, ExternalLink } from 'lucide-react';
 import api from '../services/api';
 
 const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
@@ -16,42 +16,60 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
 
   console.log('🔍 ClaimStartupButton props:', { startup, userClaimRequest });
 
+  // Memoized status configuration
+  const statusConfig = useMemo(() => ({
+    pending: {
+      color: 'text-orange-600 bg-orange-50 border-orange-200',
+      icon: userClaimRequest?.email_verified ? Clock : Mail,
+      text: userClaimRequest?.email_verified ? 'Pending Admin Review' : 'Email Verification Required',
+      description: userClaimRequest?.email_verified 
+        ? 'Your claim is being reviewed by our team' 
+        : 'Please check your email to verify your company address'
+    },
+    approved: {
+      color: 'text-green-600 bg-green-50 border-green-200',
+      icon: CheckCircle,
+      text: 'Claim Approved',
+      description: 'You can now edit this startup profile'
+    },
+    rejected: {
+      color: 'text-red-600 bg-red-50 border-red-200',
+      icon: X,
+      text: 'Claim Rejected',
+      description: 'Your claim request was not approved'
+    },
+    expired: {
+      color: 'text-gray-600 bg-gray-50 border-gray-200',
+      icon: AlertCircle,
+      text: 'Verification Expired',
+      description: 'The verification link has expired'
+    }
+  }), [userClaimRequest]);
+
   // Don't show claim button if startup is already claimed and verified
   if (startup.is_claimed && startup.claim_verified) {
     return (
-      <div className="flex items-center text-green-600 text-sm font-medium">
-        <CheckCircle className="w-4 h-4 mr-1" />
-        Claimed by {startup.claimed_by_username}
+      <div className="flex items-center text-green-600 text-sm font-medium bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+        <CheckCircle className="w-4 h-4 mr-2" />
+        <span>Claimed by {startup.claimed_by_username}</span>
       </div>
     );
   }
 
   // Show status if user has already submitted a claim
   if (userClaimRequest) {
-    const getStatusColor = (status) => {
-      switch (status) {
-        case 'pending': return 'text-orange-600 bg-orange-50 border-orange-200';
-        case 'approved': return 'text-green-600 bg-green-50 border-green-200';
-        case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
-        case 'expired': return 'text-gray-600 bg-gray-50 border-gray-200';
-        default: return 'text-gray-600 bg-gray-50 border-gray-200';
-      }
-    };
-
-    const getStatusText = (status) => {
-      switch (status) {
-        case 'pending': return userClaimRequest.email_verified ? 'Pending Admin Review' : 'Email Verification Required';
-        case 'approved': return 'Claim Approved';
-        case 'rejected': return 'Claim Rejected';
-        case 'expired': return 'Verification Expired';
-        default: return status;
-      }
-    };
+    const config = statusConfig[userClaimRequest.status] || statusConfig.pending;
+    const IconComponent = config.icon;
 
     return (
-      <div className={`inline-flex items-center px-3 py-2 rounded-lg border text-sm font-medium ${getStatusColor(userClaimRequest.status)}`}>
-        <Shield className="w-4 h-4 mr-2" />
-        {getStatusText(userClaimRequest.status)}
+      <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border text-sm font-medium ${config.color}`}>
+        <IconComponent className="w-4 h-4 mr-2" />
+        <div className="flex flex-col">
+          <span>{config.text}</span>
+          {config.description && (
+            <span className="text-xs opacity-80 mt-0.5">{config.description}</span>
+          )}
+        </div>
       </div>
     );
   }
@@ -61,13 +79,13 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
     return null;
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (error) setError(null);
-  };
+  }, [error]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const errors = {};
     
     if (!formData.email.trim()) {
@@ -89,9 +107,9 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
     }
 
     return errors;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     console.log('🚀 Submitting claim request with data:', formData);
@@ -121,7 +139,7 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
         }
         // Reset form
         setFormData({ email: '', position: '', reason: '' });
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       console.error('❌ Error submitting claim request:', error);
@@ -141,18 +159,18 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [formData, validateForm, startup.id, onClaimUpdate]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!submitting) {
       setShowModal(false);
       setError(null);
       setSuccess(false);
       setFormData({ email: '', position: '', reason: '' });
     }
-  };
+  }, [submitting]);
 
-  const getCompanyDomain = () => {
+  const getCompanyDomain = useCallback(() => {
     if (startup.website) {
       try {
         const url = new URL(startup.website.startsWith('http') ? startup.website : `https://${startup.website}`);
@@ -162,58 +180,78 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
       }
     }
     return null;
-  };
+  }, [startup.website]);
+
+  const companyDomain = useMemo(() => getCompanyDomain(), [getCompanyDomain]);
 
   return (
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="inline-flex items-center px-4 py-2 border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 font-medium"
+        className="inline-flex items-center px-4 py-2.5 border-2 border-blue-300 text-blue-700 bg-blue-50 rounded-xl hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
       >
         <Shield className="w-4 h-4 mr-2" />
         Claim This Company
       </button>
 
-      {/* Claim Modal */}
+      {/* Enhanced Claim Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             {success ? (
-              // Success State
+              // Enhanced Success State
               <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-10 h-10 text-green-600" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Claim Request Submitted!</h3>
-                <p className="text-gray-600 mb-4">
-                  Please check your email to verify your company email address.
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Claim Request Submitted!</h3>
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  We've sent a verification email to <strong>{formData.email}</strong>. 
+                  Please check your inbox and click the verification link to continue.
                 </p>
-                <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
-                  <p><strong>Next steps:</strong></p>
-                  <ol className="list-decimal list-inside mt-2 space-y-1">
-                    <li>Check your email for verification link</li>
-                    <li>Click the verification link</li>
-                    <li>Wait for admin approval</li>
+                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-6 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <Mail className="w-5 h-5 mr-2 text-blue-600" />
+                    Next Steps
+                  </h4>
+                  <ol className="text-sm text-gray-700 space-y-2">
+                    <li className="flex items-start">
+                      <span className="inline-block w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center mt-0.5 mr-3 flex-shrink-0 font-medium">1</span>
+                      <span>Check your email inbox (and spam folder)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="inline-block w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center mt-0.5 mr-3 flex-shrink-0 font-medium">2</span>
+                      <span>Click the verification link within 24 hours</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="inline-block w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center mt-0.5 mr-3 flex-shrink-0 font-medium">3</span>
+                      <span>Wait for admin approval (usually 1-3 business days)</span>
+                    </li>
                   </ol>
                 </div>
               </div>
             ) : (
-              // Form State
+              // Enhanced Form State
               <>
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between p-6 border-b border-gray-100">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Building className="w-5 h-5 text-blue-600" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Building className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Claim {startup.name}</h3>
+                      <h3 className="text-xl font-bold text-gray-900">Claim {startup.name}</h3>
                       <p className="text-sm text-gray-600">Verify company ownership</p>
                     </div>
                   </div>
                   <button
                     onClick={handleClose}
                     disabled={submitting}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -222,28 +260,34 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                   {/* General Error */}
                   {error?.general && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-center">
-                        <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                        <span className="text-red-700 text-sm">{error.general}</span>
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                      <div className="flex items-start">
+                        <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-red-900 mb-1">Error</h4>
+                          <p className="text-red-700 text-sm">{error.general}</p>
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* Domain Info */}
-                  {getCompanyDomain() && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-medium text-blue-900 mb-2">Email Domain Verification</h4>
-                      <p className="text-sm text-blue-700">
-                        Please use a company email address ending with <strong>@{getCompanyDomain()}</strong> to verify your employment.
+                  {companyDomain && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Email Domain Verification
+                      </h4>
+                      <p className="text-sm text-blue-800 leading-relaxed">
+                        Please use a company email address ending with <strong>@{companyDomain}</strong> to verify your employment with {startup.name}.
                       </p>
                     </div>
                   )}
 
                   {/* Work Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Mail className="w-4 h-4 inline mr-1" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <Mail className="w-4 h-4 inline mr-2" />
                       Work Email Address *
                     </label>
                     <input
@@ -251,24 +295,28 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        error?.email ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        error?.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
                       }`}
-                      placeholder={getCompanyDomain() ? `your.name@${getCompanyDomain()}` : 'your.work.email@company.com'}
+                      placeholder={companyDomain ? `your.name@${companyDomain}` : 'your.work.email@company.com'}
                       required
+                      disabled={submitting}
                     />
                     {error?.email && (
-                      <p className="mt-1 text-sm text-red-600">{error.email}</p>
+                      <p className="mt-2 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
+                        {error.email}
+                      </p>
                     )}
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-gray-500">
                       Use your official company email address for verification
                     </p>
                   </div>
 
                   {/* Position */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <User className="w-4 h-4 inline mr-1" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <User className="w-4 h-4 inline mr-2" />
                       Your Position *
                     </label>
                     <input
@@ -276,21 +324,25 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
                       name="position"
                       value={formData.position}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        error?.position ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        error?.position ? 'border-red-300 bg-red-50' : 'border-gray-300'
                       }`}
                       placeholder="e.g., CEO, Marketing Manager, Software Engineer"
                       required
+                      disabled={submitting}
                     />
                     {error?.position && (
-                      <p className="mt-1 text-sm text-red-600">{error.position}</p>
+                      <p className="mt-2 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
+                        {error.position}
+                      </p>
                     )}
                   </div>
 
                   {/* Reason */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MessageSquare className="w-4 h-4 inline mr-1" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <MessageSquare className="w-4 h-4 inline mr-2" />
                       Reason for Claiming *
                     </label>
                     <textarea
@@ -298,63 +350,85 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
                       value={formData.reason}
                       onChange={handleInputChange}
                       rows={4}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                        error?.reason ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors ${
+                        error?.reason ? 'border-red-300 bg-red-50' : 'border-gray-300'
                       }`}
-                      placeholder="Please explain why you're claiming this company profile and your role in the organization..."
+                      placeholder="Please explain why you're claiming this company profile and your role in the organization. Include details about your responsibilities and how you can verify your employment."
                       required
+                      disabled={submitting}
+                      maxLength={500}
                     />
                     {error?.reason && (
-                      <p className="mt-1 text-sm text-red-600">{error.reason}</p>
+                      <p className="mt-2 text-sm text-red-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
+                        {error.reason}
+                      </p>
                     )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {formData.reason.length}/500 characters
-                    </p>
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-xs text-gray-500">
+                        Be specific and detailed to help with verification
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formData.reason.length}/500
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Verification Process Info */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Verification Process</h4>
-                    <ol className="text-sm text-gray-600 space-y-1">
-                      <li className="flex items-start">
-                        <span className="inline-block w-4 h-4 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">1</span>
-                        Email verification sent to your work email
-                      </li>
-                      <li className="flex items-start">
-                        <span className="inline-block w-4 h-4 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">2</span>
-                        Admin reviews your claim request
-                      </li>
-                      <li className="flex items-start">
-                        <span className="inline-block w-4 h-4 bg-blue-100 text-blue-600 rounded-full text-xs flex items-center justify-center mt-0.5 mr-2 flex-shrink-0">3</span>
-                        Gain editing permissions once approved
-                      </li>
-                    </ol>
+                  {/* Enhanced Process Info */}
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 border border-gray-200">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <CheckCircle className="w-5 h-5 mr-2 text-blue-600" />
+                      Verification Process
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm flex items-center justify-center font-semibold flex-shrink-0">1</div>
+                        <div>
+                          <p className="font-medium text-gray-900">Email Verification</p>
+                          <p className="text-sm text-gray-600">We'll send a verification link to your work email</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm flex items-center justify-center font-semibold flex-shrink-0">2</div>
+                        <div>
+                          <p className="font-medium text-gray-900">Admin Review</p>
+                          <p className="text-sm text-gray-600">Our team reviews your claim and supporting information</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm flex items-center justify-center font-semibold flex-shrink-0">3</div>
+                        <div>
+                          <p className="font-medium text-gray-900">Profile Access</p>
+                          <p className="text-sm text-gray-600">Once approved, you can edit and manage the startup profile</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Submit Button */}
-                  <div className="flex space-x-3">
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <button
                       type="button"
                       onClick={handleClose}
                       disabled={submitting}
-                      className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none"
                     >
                       {submitting ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
                           Submitting...
                         </>
                       ) : (
                         <>
-                          <Shield className="w-4 h-4 mr-2" />
-                          Submit Claim
+                          <Shield className="w-5 h-5 mr-2" />
+                          Submit Claim Request
                         </>
                       )}
                     </button>
