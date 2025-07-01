@@ -1,4 +1,4 @@
-// src/components/StartupUploadForm.js - Complete Full Version
+// src/components/StartupUploadForm.js - Complete Full Version with Working Image Upload
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -21,6 +21,7 @@ const StartupUploadForm = () => {
   const [previewMode, setPreviewMode] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [coverImagePreview, setCoverImagePreview] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -41,7 +42,8 @@ const StartupUploadForm = () => {
     contact_email: '',
     contact_phone: '',
     business_model: '',
-    target_market: ''
+    target_market: '',
+    cover_image_url: '' // Add this to store the uploaded image URL
   });
 
   // Dynamic arrays
@@ -131,44 +133,103 @@ const StartupUploadForm = () => {
     }
   };
 
-  const handleCoverImageChange = (e) => {
+  const handleCoverImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({ ...prev, cover_image: 'Please select a valid image file' }));
-        return;
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, cover_image: 'Please select a valid image file' }));
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, cover_image: 'Image size must be less than 5MB' }));
+      return;
+    }
+    
+    setCoverImageFile(file);
+    
+    // Create preview immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setCoverImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+    
+    // Clear any previous errors
+    if (errors.cover_image) {
+      setErrors(prev => ({ ...prev, cover_image: null }));
+    }
+
+    // Upload the image immediately for better UX
+    await uploadCoverImage(file);
+  };
+
+  const uploadCoverImage = async (file) => {
+    // Don't upload if we don't have authentication or if startup isn't created yet
+    // We'll handle this during form submission instead
+    console.log('📸 Image selected, will upload during form submission');
+  };
+
+  const uploadImageToServer = async (startupId, file) => {
+    try {
+      setImageUploading(true);
+      console.log('📤 Uploading cover image for startup:', startupId);
+
+      const formData = new FormData();
+      formData.append('cover_image', file);
+
+      const response = await api.post(`/startups/${startupId}/upload_cover_image/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('✅ Image uploaded successfully:', response.data);
+      return response.data.cover_image_url;
+    } catch (error) {
+      console.error('❌ Error uploading image:', error);
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error('Failed to upload image. Please try again.');
       }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, cover_image: 'Image size must be less than 5MB' }));
-        return;
-      }
-      
-      setCoverImageFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setCoverImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-      
-      // Clear any previous errors
-      if (errors.cover_image) {
-        setErrors(prev => ({ ...prev, cover_image: null }));
-      }
+    } finally {
+      setImageUploading(false);
     }
   };
 
   const removeCoverImage = () => {
     setCoverImageFile(null);
     setCoverImagePreview(null);
+    setFormData(prev => ({ ...prev, cover_image_url: '' }));
     // Reset the file input
     const fileInput = document.getElementById('cover-image-input');
     if (fileInput) {
       fileInput.value = '';
+    }
+  };
+
+  const handleCoverImageUrlChange = (e) => {
+    const url = e.target.value;
+    setFormData(prev => ({ ...prev, cover_image_url: url }));
+    
+    // If user enters a URL, show it as preview and clear file upload
+    if (url && url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+      setCoverImagePreview(url);
+      setCoverImageFile(null);
+      // Reset file input
+      const fileInput = document.getElementById('cover-image-input');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } else if (!url) {
+      // If URL is cleared and no file, remove preview
+      if (!coverImageFile) {
+        setCoverImagePreview(null);
+      }
     }
   };
 
@@ -337,6 +398,9 @@ const StartupUploadForm = () => {
         ...(formData.business_model && { business_model: formData.business_model }),
         ...(formData.target_market && { target_market: formData.target_market.trim() }),
         
+        // Include cover image URL if provided (but not file - we'll upload that separately)
+        ...(formData.cover_image_url && !coverImageFile && { cover_image_url: formData.cover_image_url.trim() }),
+        
         // Always include these even if false/empty
         is_featured: formData.is_featured || false,
         
@@ -361,18 +425,41 @@ const StartupUploadForm = () => {
 
       console.log('📤 Submitting data:', submissionData);
 
+      // Step 1: Create the startup
       const response = await api.post('/startups/', submissionData);
+      console.log('✅ Startup created successfully:', response.data);
       
-      console.log('✅ Startup submitted successfully:', response.data);
+      const createdStartup = response.data.startup || response.data;
+      const startupId = createdStartup.id;
+
+      // Step 2: Upload cover image if we have one
+      if (coverImageFile && startupId) {
+        try {
+          console.log('📤 Uploading cover image...');
+          const uploadedImageUrl = await uploadImageToServer(startupId, coverImageFile);
+          console.log('✅ Cover image uploaded:', uploadedImageUrl);
+        } catch (imageError) {
+          console.error('❌ Failed to upload cover image:', imageError);
+          // Don't fail the entire submission for image upload errors
+          setErrors(prev => ({ 
+            ...prev, 
+            cover_image: `Startup created successfully, but failed to upload cover image: ${imageError.message}` 
+          }));
+        }
+      }
       
       setSuccess(true);
       
       // Clear any saved draft
       localStorage.removeItem('startup_draft');
       
-      // Redirect to startups page after a short delay
+      // Redirect to the created startup's detail page or startups list
       setTimeout(() => {
-        navigate('/startups');
+        if (startupId) {
+          navigate(`/startups/${startupId}`);
+        } else {
+          navigate('/startups');
+        }
       }, 2000);
 
     } catch (error) {
@@ -461,8 +548,13 @@ const StartupUploadForm = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Startup Submitted Successfully!</h2>
           <p className="text-gray-600 mb-6">
-            Your startup has been submitted for review. You'll be redirected to the startups page shortly.
+            Your startup has been submitted for review. You'll be redirected to view your startup shortly.
           </p>
+          {errors.cover_image && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-800">{errors.cover_image}</p>
+            </div>
+          )}
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-green-300 border-t-green-600 mx-auto"></div>
         </div>
       </div>
@@ -546,6 +638,11 @@ const StartupUploadForm = () => {
                 <p><strong>Auth Token:</strong> {localStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</p>
                 <p><strong>User:</strong> {user ? user.username || user.email || 'Unknown' : '❌ Not logged in'}</p>
                 <p><strong>Industries Loaded:</strong> {industries.length}</p>
+                <p><strong>Cover Image:</strong> 
+                  File: {coverImageFile ? '✅' : '❌'}, 
+                  URL: {formData.cover_image_url ? '✅' : '❌'}, 
+                  Preview: {coverImagePreview ? '✅' : '❌'}
+                </p>
                 <p><strong>Required Fields:</strong> 
                   Name: {formData.name ? '✅' : '❌'}, 
                   Desc: {formData.description?.length >= 50 ? '✅' : '❌'}, 
@@ -716,7 +813,7 @@ const StartupUploadForm = () => {
                 )}
               </div>
 
-              {/* Cover Image Upload */}
+              {/* Cover Image Upload & URL */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <ImageIcon className="w-4 h-4 inline mr-1" />
@@ -724,26 +821,46 @@ const StartupUploadForm = () => {
                 </label>
                 
                 {!coverImagePreview ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                  <div>
+                    {/* File Upload */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors mb-4">
+                      <input
+                        type="file"
+                        id="cover-image-input"
+                        accept="image/*"
+                        onChange={handleCoverImageChange}
+                        className="hidden"
+                      />
+                      <label 
+                        htmlFor="cover-image-input" 
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
+                        <p className="text-gray-600 mb-2">
+                          Click to upload a cover image or drag and drop
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          PNG, JPG, GIF up to 5MB. Recommended size: 1200x400px
+                        </p>
+                      </label>
+                    </div>
+                    
+                    {/* OR separator */}
+                    <div className="relative flex items-center justify-center mb-4">
+                      <div className="border-t border-gray-300 w-full"></div>
+                      <span className="bg-white px-3 text-gray-500 text-sm">OR</span>
+                      <div className="border-t border-gray-300 w-full"></div>
+                    </div>
+                    
+                    {/* URL Input */}
                     <input
-                      type="file"
-                      id="cover-image-input"
-                      accept="image/*"
-                      onChange={handleCoverImageChange}
-                      className="hidden"
+                      type="url"
+                      name="cover_image_url"
+                      value={formData.cover_image_url}
+                      onChange={handleCoverImageUrlChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Or enter a URL to your cover image (https://...)"
                     />
-                    <label 
-                      htmlFor="cover-image-input" 
-                      className="cursor-pointer flex flex-col items-center"
-                    >
-                      <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
-                      <p className="text-gray-600 mb-2">
-                        Click to upload a cover image or drag and drop
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        PNG, JPG, GIF up to 5MB. Recommended size: 1200x400px
-                      </p>
-                    </label>
                   </div>
                 ) : (
                   <div className="relative">
@@ -751,6 +868,13 @@ const StartupUploadForm = () => {
                       src={coverImagePreview}
                       alt="Cover preview"
                       className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                      onError={() => {
+                        // If image fails to load, remove preview and show error
+                        setCoverImagePreview(null);
+                        setCoverImageFile(null);
+                        setFormData(prev => ({ ...prev, cover_image_url: '' }));
+                        setErrors(prev => ({ ...prev, cover_image: 'Failed to load image. Please check the URL or upload a different file.' }));
+                      }}
                     />
                     <button
                       type="button"
@@ -759,9 +883,16 @@ const StartupUploadForm = () => {
                     >
                       <X className="w-4 h-4" />
                     </button>
-                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                      {coverImageFile?.name}
-                    </div>
+                    {coverImageFile && (
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                        📁 {coverImageFile.name}
+                      </div>
+                    )}
+                    {!coverImageFile && formData.cover_image_url && (
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                        🔗 URL Image
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -773,7 +904,7 @@ const StartupUploadForm = () => {
                 )}
                 
                 <p className="mt-1 text-sm text-gray-500">
-                  This will be displayed as a banner on your startup page.
+                  This will be displayed as a banner on your startup page. Upload a file or provide an image URL.
                 </p>
               </div>
             </div>
@@ -1252,13 +1383,13 @@ const StartupUploadForm = () => {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || imageUploading}
                 className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Submitting...
+                    {imageUploading ? 'Uploading image...' : 'Submitting...'}
                   </>
                 ) : (
                   <>
@@ -1276,6 +1407,7 @@ const StartupUploadForm = () => {
                 <li>• Double-check your company information for accuracy</li>
                 <li>• Your startup will be reviewed before being published</li>
                 <li>• You'll receive a notification once your startup is approved</li>
+                <li>• Cover images will be uploaded after startup creation</li>
               </ul>
             </div>
           </div>
