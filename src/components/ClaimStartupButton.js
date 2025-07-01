@@ -1,4 +1,4 @@
-// src/components/ClaimStartupButton.js - Enhanced Production-Ready Version
+// src/components/ClaimStartupButton.js - Fixed React Hooks Rules
 import React, { useState, useCallback, useMemo } from 'react';
 import { Shield, Building, Mail, User, MessageSquare, X, CheckCircle, AlertCircle, Clock, ExternalLink } from 'lucide-react';
 import api from '../services/api';
@@ -16,7 +16,7 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
 
   console.log('🔍 ClaimStartupButton props:', { startup, userClaimRequest });
 
-  // Memoized status configuration
+  // MOVED ALL HOOKS TO TOP LEVEL - BEFORE ANY EARLY RETURNS
   const statusConfig = useMemo(() => ({
     pending: {
       color: 'text-orange-600 bg-orange-50 border-orange-200',
@@ -45,39 +45,6 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
       description: 'The verification link has expired'
     }
   }), [userClaimRequest]);
-
-  // Don't show claim button if startup is already claimed and verified
-  if (startup.is_claimed && startup.claim_verified) {
-    return (
-      <div className="flex items-center text-green-600 text-sm font-medium bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-        <CheckCircle className="w-4 h-4 mr-2" />
-        <span>Claimed by {startup.claimed_by_username}</span>
-      </div>
-    );
-  }
-
-  // Show status if user has already submitted a claim
-  if (userClaimRequest) {
-    const config = statusConfig[userClaimRequest.status] || statusConfig.pending;
-    const IconComponent = config.icon;
-
-    return (
-      <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border text-sm font-medium ${config.color}`}>
-        <IconComponent className="w-4 h-4 mr-2" />
-        <div className="flex flex-col">
-          <span>{config.text}</span>
-          {config.description && (
-            <span className="text-xs opacity-80 mt-0.5">{config.description}</span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Don't show if user can't claim
-  if (!startup.can_claim) {
-    return null;
-  }
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -183,6 +150,40 @@ const ClaimStartupButton = ({ startup, userClaimRequest, onClaimUpdate }) => {
   }, [startup.website]);
 
   const companyDomain = useMemo(() => getCompanyDomain(), [getCompanyDomain]);
+
+  // NOW ALL CONDITIONAL LOGIC COMES AFTER HOOKS
+  // Don't show claim button if startup is already claimed and verified
+  if (startup.is_claimed && startup.claim_verified) {
+    return (
+      <div className="flex items-center text-green-600 text-sm font-medium bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+        <CheckCircle className="w-4 h-4 mr-2" />
+        <span>Claimed by {startup.claimed_by_username}</span>
+      </div>
+    );
+  }
+
+  // Show status if user has already submitted a claim
+  if (userClaimRequest) {
+    const config = statusConfig[userClaimRequest.status] || statusConfig.pending;
+    const IconComponent = config.icon;
+
+    return (
+      <div className={`inline-flex items-center px-4 py-2.5 rounded-lg border text-sm font-medium ${config.color}`}>
+        <IconComponent className="w-4 h-4 mr-2" />
+        <div className="flex flex-col">
+          <span>{config.text}</span>
+          {config.description && (
+            <span className="text-xs opacity-80 mt-0.5">{config.description}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Don't show if user can't claim
+  if (!startup.can_claim) {
+    return null;
+  }
 
   return (
     <>
