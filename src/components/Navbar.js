@@ -119,6 +119,25 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Lock/unlock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      // Disable body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '0px'; // Prevent layout shift
+    } else {
+      // Re-enable body scroll
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const loadUserStats = async () => {
     try {
       const response = await axios.get('http://localhost:8000/api/auth/stats/');
@@ -278,7 +297,7 @@ const Navbar = () => {
               {showQuickSearch && (quickSearchResults.startups.length > 0 || quickSearchResults.jobs.length > 0) && (
                 <div 
                   ref={dropdownRef}
-                  className="absolute z-10 mt-2 w-full bg-white shadow-xl max-h-80 rounded-xl py-2 text-base ring-1 ring-black ring-opacity-5 overflow-auto border border-gray-100"
+                  className="absolute z-50 mt-2 w-full bg-white shadow-xl max-h-80 rounded-xl py-2 text-base ring-1 ring-black ring-opacity-5 overflow-auto border border-gray-100"
                 >
                   {quickSearchResults.startups.length > 0 && (
                     <div>
@@ -383,21 +402,21 @@ const Navbar = () => {
               {isProfileDropdownOpen && (
                 <>
                   <div 
-                    className="fixed inset-0 z-10" 
+                    className="fixed inset-0 z-40" 
                     onClick={() => setIsProfileDropdownOpen(false)} 
                   />
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20">
+                  <div className="fixed right-4 top-16 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 max-h-[calc(100vh-80px)] overflow-y-auto sm:absolute sm:right-0 sm:top-auto sm:mt-2">
                     {/* Profile Header */}
-                    <div className="px-4 py-3 border-b border-gray-50">
+                    <div className="px-4 py-3 border-b border-gray-50 bg-white rounded-t-2xl">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                           <span className="text-white font-medium">
                             {getUserInitials()}
                           </span>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900">{getUserDisplayName()}</div>
-                          <div className="text-sm text-gray-500">{user?.email}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-gray-900 truncate">{getUserDisplayName()}</div>
+                          <div className="text-sm text-gray-500 truncate">{user?.email}</div>
                           <div className="flex items-center space-x-3 mt-1">
                             {user?.is_premium && (
                               <div className="text-xs text-amber-600 flex items-center">
@@ -454,21 +473,21 @@ const Navbar = () => {
                             onClick={() => setIsProfileDropdownOpen(false)}
                             title={item.description}
                           >
-                            <IconComponent className={`w-4 h-4 mr-3 ${
+                            <IconComponent className={`w-4 h-4 mr-3 flex-shrink-0 ${
                               item.isAdmin 
                                 ? 'text-blue-600' 
                                 : item.path === '/my-claims'
                                   ? 'text-orange-600'
                                   : 'text-gray-400'
                             }`} />
-                            {item.label}
+                            <span className="flex-1 truncate">{item.label}</span>
                             {item.isAdmin && (
-                              <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                              <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
                                 Admin
                               </span>
                             )}
                             {item.path === '/my-claims' && (
-                              <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                              <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
                                 Claims
                               </span>
                             )}
@@ -524,7 +543,7 @@ const Navbar = () => {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-4">
+          <div className="lg:hidden border-t border-gray-100 py-4 max-h-[calc(100vh-64px)] overflow-y-auto">
             {/* Mobile Search */}
             <div className="px-4 mb-4 md:hidden">
               <form onSubmit={handleQuickSearchSubmit}>
@@ -560,10 +579,10 @@ const Navbar = () => {
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <IconComponent className="w-4 h-4 mr-3" />
-                    <div>
-                      <div>{item.label}</div>
-                      <div className="text-xs text-gray-500">{item.description}</div>
+                    <IconComponent className="w-4 h-4 mr-3 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate">{item.label}</div>
+                      <div className="text-xs text-gray-500 truncate">{item.description}</div>
                     </div>
                   </Link>
                 );
@@ -573,14 +592,14 @@ const Navbar = () => {
             {/* Mobile Profile Section */}
             <div className="mt-6 pt-6 border-t border-gray-100 px-4">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                   <span className="text-white font-medium">
                     {getUserInitials()}
                   </span>
                 </div>
-                <div>
-                  <div className="font-medium text-gray-900">{getUserDisplayName()}</div>
-                  <div className="text-sm text-gray-500">{user?.email}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-gray-900 truncate">{getUserDisplayName()}</div>
+                  <div className="text-sm text-gray-500 truncate">{user?.email}</div>
                   {(user?.is_staff || user?.is_superuser) && (
                     <div className="text-xs text-blue-600 flex items-center mt-1">
                       <Shield className="w-3 h-3 mr-1" />
@@ -606,21 +625,21 @@ const Navbar = () => {
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <IconComponent className={`w-4 h-4 mr-3 ${
+                      <IconComponent className={`w-4 h-4 mr-3 flex-shrink-0 ${
                         item.isAdmin 
                           ? 'text-blue-600' 
                           : item.path === '/my-claims'
                             ? 'text-orange-600'
                             : 'text-gray-400'
                       }`} />
-                      {item.label}
+                      <span className="flex-1 truncate">{item.label}</span>
                       {item.isAdmin && (
-                        <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                        <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
                           Admin
                         </span>
                       )}
                       {item.path === '/my-claims' && (
-                        <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                        <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
                           Claims
                         </span>
                       )}
