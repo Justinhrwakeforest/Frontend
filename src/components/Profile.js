@@ -1,4 +1,4 @@
-// src/components/Profile.js - Professional modern UI
+// src/components/Profile.js - Startlinker Modern Minimalistic Design
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -7,7 +7,8 @@ import {
   User, MapPin, Calendar, Edit, Save, X, 
   Star, Bookmark, MessageCircle, Heart,
   Building, Briefcase, Settings, Activity,
-  TrendingUp, Award, Target, AlertCircle
+  TrendingUp, Award, Target, AlertCircle,
+  Sparkles, ExternalLink
 } from 'lucide-react';
 
 const Profile = () => {
@@ -136,7 +137,7 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-200 border-t-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your profile...</p>
         </div>
       </div>
@@ -147,11 +148,11 @@ const Profile = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Header */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex items-center space-x-6">
-              <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-blue-600 text-2xl font-semibold">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-white text-2xl font-bold">
                   {profile?.first_name?.charAt(0) || profile?.username?.charAt(0) || 'U'}
                 </span>
               </div>
@@ -164,14 +165,14 @@ const Profile = () => {
                         value={editData.first_name}
                         onChange={(e) => setEditData({...editData, first_name: e.target.value})}
                         placeholder="First Name"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <input
                         type="text"
                         value={editData.last_name}
                         onChange={(e) => setEditData({...editData, last_name: e.target.value})}
                         placeholder="Last Name"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <input
@@ -179,19 +180,19 @@ const Profile = () => {
                       value={editData.location}
                       onChange={(e) => setEditData({...editData, location: e.target.value})}
                       placeholder="Location"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <textarea
                       value={editData.bio}
                       onChange={(e) => setEditData({...editData, bio: e.target.value})}
                       placeholder="Bio"
                       rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 ) : (
                   <div>
-                    <h1 className="text-xl font-semibold text-gray-900">
+                    <h1 className="text-xl font-bold text-gray-900">
                       {profile?.first_name && profile?.last_name 
                         ? `${profile.first_name} ${profile.last_name}` 
                         : profile?.username}
@@ -213,7 +214,7 @@ const Profile = () => {
             
             <div className="mt-6 md:mt-0 flex items-center space-x-3">
               {profile?.is_premium && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-xl text-sm font-medium bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 border border-amber-300">
                   <Award className="w-4 h-4 mr-1" />
                   Premium
                 </span>
@@ -223,14 +224,14 @@ const Profile = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={handleSaveProfile}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save
                   </button>
                   <button
                     onClick={handleEditToggle}
-                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    className="flex items-center px-4 py-2.5 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors font-medium"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Cancel
@@ -239,7 +240,7 @@ const Profile = () => {
               ) : (
                 <button
                   onClick={handleEditToggle}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Profile
@@ -249,29 +250,29 @@ const Profile = () => {
           </div>
           
           {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6 pt-6 border-t border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6 pt-6 border-t border-gray-100">
             <div className="text-center">
-              <div className="text-xl font-semibold text-blue-600">{profile?.total_ratings || 0}</div>
+              <div className="text-2xl font-bold text-blue-600">{profile?.total_ratings || 0}</div>
               <div className="text-sm text-gray-600">Ratings Given</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-semibold text-green-600">{profile?.total_comments || 0}</div>
+              <div className="text-2xl font-bold text-green-600">{profile?.total_comments || 0}</div>
               <div className="text-sm text-gray-600">Comments</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-semibold text-purple-600">{profile?.total_bookmarks || 0}</div>
+              <div className="text-2xl font-bold text-purple-600">{profile?.total_bookmarks || 0}</div>
               <div className="text-sm text-gray-600">Bookmarks</div>
             </div>
             <div className="text-center">
-              <div className="text-xl font-semibold text-red-600">{profile?.total_likes || 0}</div>
+              <div className="text-2xl font-bold text-red-600">{profile?.total_likes || 0}</div>
               <div className="text-sm text-gray-600">Likes</div>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
+          <div className="border-b border-gray-100">
             <nav className="flex space-x-8 px-6 overflow-x-auto">
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
@@ -282,7 +283,7 @@ const Profile = () => {
                     className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
                     }`}
                   >
                     <IconComponent className="w-4 h-4 mr-2" />
@@ -301,7 +302,7 @@ const Profile = () => {
                   {/* About Section */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">About</h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Member since</span>
                         <span className="font-medium">
@@ -333,11 +334,11 @@ const Profile = () => {
                           value={newInterest}
                           onChange={(e) => setNewInterest(e.target.value)}
                           placeholder="Add an interest..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
                         >
                           Add
                         </button>
@@ -347,12 +348,12 @@ const Profile = () => {
                         {interests.map((interest) => (
                           <span
                             key={interest.id}
-                            className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                            className="inline-flex items-center px-3 py-1.5 rounded-xl text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200"
                           >
                             {interest.interest}
                             <button
                               onClick={() => handleRemoveInterest(interest.id)}
-                              className="ml-2 text-blue-600 hover:text-blue-800"
+                              className="ml-2 text-blue-600 hover:text-blue-800 transition-colors"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -379,7 +380,7 @@ const Profile = () => {
                         <Link
                           key={index}
                           to={`/startups/${rating.startup_id}`}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-100"
                         >
                           <div className="flex items-center space-x-3">
                             <span className="text-xl">{rating.startup_logo}</span>
@@ -395,7 +396,7 @@ const Profile = () => {
                               <Star
                                 key={i}
                                 className={`w-4 h-4 ${
-                                  i < rating.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                                  i < rating.rating ? 'text-amber-400 fill-current' : 'text-gray-300'
                                 }`}
                               />
                             ))}
@@ -415,7 +416,7 @@ const Profile = () => {
                         <Link
                           key={index}
                           to={`/startups/${comment.startup_id}`}
-                          className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="block p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-100"
                         >
                           <div className="flex items-center space-x-3 mb-2">
                             <span className="text-lg">{comment.startup_logo}</span>
@@ -435,11 +436,11 @@ const Profile = () => {
 
                 {(!activity?.recent_ratings?.length && !activity?.recent_comments?.length) && (
                   <div className="text-center py-8">
-                    <Activity className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-600 mb-3">No recent activity found.</p>
                     <Link
                       to="/startups"
-                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
                     >
                       Explore Startups
                     </Link>
@@ -453,7 +454,7 @@ const Profile = () => {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold text-gray-900">Your Bookmarks</h3>
-                  <span className="text-sm text-gray-500">{bookmarks.length} startups</span>
+                  <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-xl">{bookmarks.length} startups</span>
                 </div>
                 
                 {bookmarks.length > 0 ? (
@@ -461,7 +462,7 @@ const Profile = () => {
                     {bookmarks.map((startup) => (
                       <div
                         key={startup.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+                        className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-gray-200 hover:shadow-sm transition-all"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
@@ -469,7 +470,7 @@ const Profile = () => {
                             <div>
                               <Link
                                 to={`/startups/${startup.id}`}
-                                className="font-medium text-gray-900 hover:text-blue-600"
+                                className="font-medium text-gray-900 hover:text-blue-600 transition-colors"
                               >
                                 {startup.name}
                               </Link>
@@ -478,7 +479,7 @@ const Profile = () => {
                           </div>
                           <button
                             onClick={() => removeBookmark(startup.id)}
-                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-lg hover:bg-red-50"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -492,7 +493,7 @@ const Profile = () => {
                             {startup.location}
                           </span>
                           <span className="flex items-center">
-                            <Star className="w-3 h-3 mr-1 text-yellow-400" />
+                            <Star className="w-3 h-3 mr-1 text-amber-400" />
                             {startup.average_rating?.toFixed(1) || 'N/A'}
                           </span>
                         </div>
@@ -501,11 +502,11 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Bookmark className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <Bookmark className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-600 mb-3">No bookmarks yet.</p>
                     <Link
                       to="/startups"
-                      className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
                     >
                       Browse Startups
                     </Link>
@@ -521,8 +522,8 @@ const Profile = () => {
                 
                 <div className="space-y-6">
                   {/* Account Information */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-3">Account Information</h4>
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4">Account Information</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Username</span>
@@ -534,10 +535,10 @@ const Profile = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Account Status</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-3 py-1 rounded-xl text-xs font-medium ${
                           profile?.is_premium 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-gray-100 text-gray-800'
+                            ? 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 border border-amber-300' 
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
                         }`}>
                           {profile?.is_premium ? 'Premium' : 'Free'}
                         </span>
@@ -546,35 +547,49 @@ const Profile = () => {
                   </div>
 
                   {/* Privacy Settings */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-3">Privacy Settings</h4>
-                    <div className="space-y-3">
-                      <label className="flex items-center justify-between">
-                        <span className="text-gray-700">Show profile to other users</span>
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4">Privacy Settings</h4>
+                    <div className="space-y-4">
+                      <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer">
+                        <span className="text-gray-700 font-medium">Show profile to other users</span>
                         <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" defaultChecked />
                       </label>
-                      <label className="flex items-center justify-between">
-                        <span className="text-gray-700">Allow email notifications</span>
+                      <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer">
+                        <span className="text-gray-700 font-medium">Allow email notifications</span>
                         <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" defaultChecked />
                       </label>
-                      <label className="flex items-center justify-between">
-                        <span className="text-gray-700">Show activity publicly</span>
+                      <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer">
+                        <span className="text-gray-700 font-medium">Show activity publicly</span>
                         <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                       </label>
                     </div>
                   </div>
 
+                  {/* Upgrade Section (if not premium) */}
+                  {!profile?.is_premium && (
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <Sparkles className="w-6 h-6 text-amber-600" />
+                        <h4 className="font-semibold text-amber-900">Upgrade to Premium</h4>
+                      </div>
+                      <p className="text-amber-800 mb-4">Unlock exclusive features and get priority support.</p>
+                      <button className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-colors font-medium">
+                        Upgrade Now
+                      </button>
+                    </div>
+                  )}
+
                   {/* Danger Zone */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h4 className="font-medium text-red-900 mb-3">Danger Zone</h4>
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                    <h4 className="font-semibold text-red-900 mb-4">Danger Zone</h4>
                     <div className="space-y-2">
-                      <button className="w-full text-left px-3 py-2 text-red-700 hover:bg-red-100 rounded-lg transition-colors">
+                      <button className="w-full text-left px-4 py-3 text-red-700 hover:bg-red-100 rounded-xl transition-colors font-medium">
                         Change Password
                       </button>
-                      <button className="w-full text-left px-3 py-2 text-red-700 hover:bg-red-100 rounded-lg transition-colors">
+                      <button className="w-full text-left px-4 py-3 text-red-700 hover:bg-red-100 rounded-xl transition-colors font-medium">
                         Download My Data
                       </button>
-                      <button className="w-full text-left px-3 py-2 text-red-700 hover:bg-red-100 rounded-lg transition-colors">
+                      <button className="w-full text-left px-4 py-3 text-red-700 hover:bg-red-100 rounded-xl transition-colors font-medium">
                         Delete Account
                       </button>
                     </div>
