@@ -1,4 +1,4 @@
-// src/components/JobEditForm.js
+// src/components/JobEditForm.js - Fixed with better error handling
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, X, ArrowLeft } from 'lucide-react';
@@ -33,6 +33,7 @@ const JobEditForm = () => {
 
   useEffect(() => {
     if (id) {
+      console.log('🔄 JobEditForm mounted for job ID:', id);
       fetchJob();
       fetchJobTypes();
     }
@@ -41,13 +42,29 @@ const JobEditForm = () => {
   const fetchJob = async () => {
     try {
       setLoading(true);
+      console.log('📡 Fetching job details for editing...');
+      
       const response = await api.get(`/jobs/${id}/`);
       const jobData = response.data;
+      
+      console.log('✅ Job data received:', jobData);
+      console.log('🔐 Job edit permissions:', {
+        can_edit: jobData.can_edit,
+        status: jobData.status,
+        posted_by: jobData.posted_by_username
+      });
+      
+      // Check if user can edit this job
+      if (!jobData.can_edit) {
+        alert('You do not have permission to edit this job. Only the job poster can edit jobs that are not yet approved.');
+        navigate(`/jobs/${id}`);
+        return;
+      }
       
       setJob(jobData);
       
       // Convert job data to form data
-      setFormData({
+      const convertedFormData = {
         title: jobData.title || '',
         description: jobData.description || '',
         location: jobData.location || '',
@@ -61,15 +78,22 @@ const JobEditForm = () => {
         application_deadline: jobData.application_deadline ? new Date(jobData.application_deadline).toISOString().slice(0, 16) : '',
         expires_at: jobData.expires_at ? new Date(jobData.expires_at).toISOString().slice(0, 16) : '',
         skills: jobData.skills || []
-      });
+      };
+      
+      console.log('📝 Form data prepared:', convertedFormData);
+      setFormData(convertedFormData);
       
     } catch (error) {
-      console.error('Error fetching job:', error);
+      console.error('❌ Error fetching job:', error);
+      
       if (error.response?.status === 404) {
+        alert('Job not found');
         navigate('/jobs');
       } else if (error.response?.status === 403) {
-        alert('You do not have permission to edit this job');
+        alert('You do not have permission to view this job');
         navigate('/jobs');
+      } else {
+        alert('Failed to load job details. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -78,10 +102,17 @@ const JobEditForm = () => {
 
   const fetchJobTypes = async () => {
     try {
+      console.log('📡 Fetching job types...');
       const response = await api.get('/jobs/types/');
-      setJobTypes(response.data);
+      console.log('✅ Job types response:', response.data);
+      
+      const jobTypesData = response.data.results || response.data || [];
+      setJobTypes(Array.isArray(jobTypesData) ? jobTypesData : []);
+      
+      console.log('📊 Loaded job types:', jobTypesData.length);
     } catch (error) {
-      console.error('Error fetching job types:', error);
+      console.error('❌ Error fetching job types:', error);
+      setJobTypes([]);
     }
   };
 
@@ -158,23 +189,84 @@ const JobEditForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('🚀 Starting job update...');
+    console.log('📝 Form data:', formData);
+    
     if (!validateForm()) {
+      console.log('❌ Form validation failed');
       return;
     }
 
     setSaving(true);
 
     try {
-      const response = await api.patch(`/jobs/${id}/`, formData);
+      // Prepare the payload (only editable fields)
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        location: formData.location.trim(),
+        job_type: parseInt(formData.job_type),
+        salary_range: formData.salary_range.trim(),
+        is_remote: formData.is_remote,
+        is_urgent: formData.is_urgent,
+        experience_level: formData.experience_level,
+        requirements: formData.requirements.trim(),
+        benefits: formData.benefits.trim(),
+        skills: formData.skills
+      };
+
+      // Add optional datetime fields only if they have values
+      if (formData.application_deadline) {
+        payload.application_deadline = formData.application_deadline;
+      }
+      if (formData.expires_at) {
+        payload.expires_at = formData.expires_at;
+      }
+
+      console.log('📤 Sending payload:', payload);
+
+      const response = await api.patch(`/jobs/${id}/`, payload);
+
+      console.log('✅ Job update response:', response.data);
 
       if (response.status === 200) {
-        alert('Job updated successfully!');
+        const responseData = response.data;
+        
+        // Show appropriate success message based on approval requirement
+        if (responseData.requires_approval) {
+          alert('Job updated successfully! Your changes have been submitted for admin approval and will be reviewed before being published.');
+        } else {
+          alert('Job updated successfully!');
+        }
+        
         navigate(`/jobs/${id}`);
       }
     } catch (error) {
-      console.error('Error updating job:', error);
-      if (error.response?.data) {
-        setErrors(error.response.data);
+      console.error('❌ Error updating job:', error);
+      console.error('📋 Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      if (error.response?.status === 403) {
+        setErrors({ general: 'You do not have permission to edit this job. Only the job poster can edit jobs that are pending approval.' });
+      } else if (error.response?.status === 400) {
+        // Handle validation errors
+        if (error.response?.data && typeof error.response.data === 'object') {
+          setErrors(error.response.data);
+        } else {
+          setErrors({ general: 'Please check your input and try again.' });
+        }
+      } else if (error.response?.data) {
+        // Handle field-specific errors
+        if (typeof error.response.data === 'object') {
+          setErrors(error.response.data);
+        } else {
+          setErrors({ general: error.response.data.detail || error.response.data.message || 'Failed to update job' });
+        }
+      } else if (error.message.includes('Network Error')) {
+        setErrors({ general: 'Network error. Please check your connection and try again.' });
       } else {
         setErrors({ general: 'Failed to update job. Please try again.' });
       }
@@ -253,6 +345,33 @@ const JobEditForm = () => {
               </div>
             )}
 
+            {/* Debug Information in Development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
+                <strong>Debug Info:</strong> Job Types: {jobTypes.length} | Job Status: {job?.status} | Can Edit: {job?.can_edit ? 'Yes' : 'No'}
+                {Object.keys(errors).length > 0 && (
+                  <div className="mt-2">
+                    <strong>Errors:</strong> {JSON.stringify(errors, null, 2)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Permission Warning */}
+            {job && !job.can_edit && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="text-red-500 mt-1 mr-3" size={20} />
+                  <div>
+                    <h4 className="text-red-900 font-medium">Cannot Edit Job</h4>
+                    <p className="text-red-700 text-sm mt-1">
+                      This job cannot be edited because it has already been approved or you are not the original poster.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Status Notice */}
             {job.status === 'rejected' && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -302,7 +421,7 @@ const JobEditForm = () => {
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.job_type ? 'border-red-300' : 'border-gray-300'}`}
                 >
                   <option value="">Select job type</option>
-                  {jobTypes.map(type => (
+                  {Array.isArray(jobTypes) && jobTypes.map(type => (
                     <option key={type.id} value={type.id}>
                       {type.name}
                     </option>
@@ -533,8 +652,11 @@ const JobEditForm = () => {
                 <div>
                   <h4 className="text-blue-900 font-medium">Review Required</h4>
                   <p className="text-blue-700 text-sm mt-1">
-                    Changes to your job posting will be reviewed by our admin team before being published. 
-                    You'll receive a notification once it's approved.
+                    {job?.status === 'active' ? (
+                      'Since this job is currently active, your changes will reset it to pending status and require admin re-approval before being published again.'
+                    ) : (
+                      'Changes to your job posting will be reviewed by our admin team before being published. You\'ll receive a notification once it\'s approved.'
+                    )}
                   </p>
                 </div>
               </div>
@@ -552,7 +674,7 @@ const JobEditForm = () => {
               </button>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || (job && !job.can_edit)}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {saving ? (
