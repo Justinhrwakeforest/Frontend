@@ -1,4 +1,4 @@
-// src/components/JobDetailPage.js - Updated with Edit Button
+// src/components/JobDetailPage.js - Fixed with proper text wrapping
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -327,8 +327,17 @@ const JobDetailPage = () => {
               icon={Briefcase}
               section="description"
             >
-              <div className="prose prose-gray max-w-none mt-4">
-                <p className="whitespace-pre-line">{job.description}</p>
+              <div className="mt-4">
+                <div 
+                  className="text-gray-700 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap"
+                  style={{ 
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    hyphens: 'auto'
+                  }}
+                >
+                  {job.description}
+                </div>
               </div>
             </ExpandableCard>
 
@@ -343,7 +352,7 @@ const JobDetailPage = () => {
                   {job.requirements_list.map((req, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>{req}</span>
+                      <span className="break-words overflow-wrap-anywhere">{req}</span>
                     </li>
                   ))}
                 </ul>
@@ -361,7 +370,7 @@ const JobDetailPage = () => {
                   {job.benefits_list.map((benefit, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <span>{benefit}</span>
+                      <span className="break-words overflow-wrap-anywhere">{benefit}</span>
                     </li>
                   ))}
                 </ul>
@@ -376,7 +385,7 @@ const JobDetailPage = () => {
                   {job.skills.map((skill, index) => (
                     <span
                       key={index}
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      className={`px-3 py-1 rounded-full text-sm font-medium break-words ${
                         skill.is_required 
                           ? 'bg-blue-100 text-blue-800' 
                           : 'bg-gray-100 text-gray-800'
@@ -407,17 +416,19 @@ const JobDetailPage = () => {
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">{job.startup_detail?.logo || '🏢'}</div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">{job.startup_name}</h4>
-                    <p className="text-sm text-gray-600">{job.startup_industry}</p>
+                    <h4 className="font-semibold text-gray-900 break-words">{job.startup_name}</h4>
+                    <p className="text-sm text-gray-600 break-words">{job.startup_industry}</p>
                   </div>
                 </div>
                 
-                <p className="text-gray-700">{job.startup_detail?.description}</p>
+                <div className="text-gray-700 break-words overflow-wrap-anywhere">
+                  {job.startup_detail?.description}
+                </div>
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Industry:</span>
-                    <p className="font-medium">{job.startup_detail?.industry_name}</p>
+                    <p className="font-medium break-words">{job.startup_detail?.industry_name}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Size:</span>
@@ -429,7 +440,7 @@ const JobDetailPage = () => {
                   </div>
                   <div>
                     <span className="text-gray-500">Location:</span>
-                    <p className="font-medium">{job.startup_detail?.location}</p>
+                    <p className="font-medium break-words">{job.startup_detail?.location}</p>
                   </div>
                 </div>
 
@@ -438,7 +449,7 @@ const JobDetailPage = () => {
                     href={job.startup_detail.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 break-all"
                   >
                     <Globe size={16} />
                     Visit Website
@@ -490,9 +501,9 @@ const JobDetailPage = () => {
                       className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => navigate(`/jobs/${similarJob.id}`)}
                     >
-                      <h4 className="font-medium text-gray-900">{similarJob.title}</h4>
-                      <p className="text-sm text-gray-600">{similarJob.startup_name}</p>
-                      <p className="text-sm text-gray-500">{similarJob.location}</p>
+                      <h4 className="font-medium text-gray-900 break-words">{similarJob.title}</h4>
+                      <p className="text-sm text-gray-600 break-words">{similarJob.startup_name}</p>
+                      <p className="text-sm text-gray-500 break-words">{similarJob.location}</p>
                     </div>
                   ))}
                 </div>
