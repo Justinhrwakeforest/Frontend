@@ -1,127 +1,159 @@
-// src/components/JobEditForm.js - Fixed with better error handling
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, X, ArrowLeft } from 'lucide-react';
-import api from '../services/api';
+import { Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, X, ArrowLeft, Calendar, Upload, ExternalLink, Save } from 'lucide-react';
 
-const JobEditForm = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  
-  const [job, setJob] = useState(null);
+const StartupEditForm = ({ startupId = 1, onClose, onSuccess }) => {
+  const [startup, setStartup] = useState(null);
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     description: '',
+    industry: '',
     location: '',
-    job_type: '',
-    salary_range: '',
-    is_remote: false,
-    is_urgent: false,
-    experience_level: 'mid',
-    requirements: '',
-    benefits: '',
-    application_deadline: '',
-    expires_at: '',
-    skills: []
+    website: '',
+    founded_year: '',
+    employee_count: '',
+    funding_amount: '',
+    valuation: '',
+    stage: 'idea',
+    contact_email: '',
+    pitch_deck: null,
+    social_links: {
+      linkedin: '',
+      twitter: '',
+      facebook: ''
+    },
+    tags: []
   });
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
-  const [jobTypes, setJobTypes] = useState([]);
-  const [skillInput, setSkillInput] = useState('');
+  const [industries, setIndustries] = useState([]);
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
-    if (id) {
-      console.log('🔄 JobEditForm mounted for job ID:', id);
-      fetchJob();
-      fetchJobTypes();
+    if (startupId) {
+      console.log('🔄 StartupEditForm mounted for startup ID:', startupId);
+      fetchStartup();
+      fetchIndustries();
     }
-  }, [id]);
+  }, [startupId]);
 
-  const fetchJob = async () => {
+  const fetchStartup = async () => {
     try {
       setLoading(true);
-      console.log('📡 Fetching job details for editing...');
+      console.log('📡 Fetching startup details for editing...');
       
-      const response = await api.get(`/jobs/${id}/`);
-      const jobData = response.data;
+      // Mock API call - replace with actual API
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('✅ Job data received:', jobData);
-      console.log('🔐 Job edit permissions:', {
-        can_edit: jobData.can_edit,
-        status: jobData.status,
-        posted_by: jobData.posted_by_username
-      });
+      const mockStartupData = {
+        id: parseInt(startupId),
+        name: 'TechCorp Inc.',
+        description: 'We are building the future of technology with innovative AI solutions that help businesses automate their processes and improve efficiency.',
+        industry: 1,
+        location: 'San Francisco, CA',
+        website: 'https://techcorp.com',
+        founded_year: 2020,
+        employee_count: '11-50',
+        funding_amount: '$2M',
+        valuation: '$10M',
+        stage: 'growth',
+        contact_email: 'contact@techcorp.com',
+        social_links: {
+          linkedin: 'https://linkedin.com/company/techcorp',
+          twitter: 'https://twitter.com/techcorp',
+          facebook: ''
+        },
+        tags: ['AI', 'Machine Learning', 'SaaS', 'B2B'],
+        can_edit: true,
+        status: 'active'
+      };
       
-      // Check if user can edit this job
-      if (!jobData.can_edit) {
-        alert('You do not have permission to edit this job. Only the job poster can edit jobs that are not yet approved.');
-        navigate(`/jobs/${id}`);
+      console.log('✅ Startup data received:', mockStartupData);
+      
+      // Check if user can edit this startup
+      if (!mockStartupData.can_edit) {
+        alert('You do not have permission to edit this startup.');
+        onClose && onClose();
         return;
       }
       
-      setJob(jobData);
+      setStartup(mockStartupData);
       
-      // Convert job data to form data
-      const convertedFormData = {
-        title: jobData.title || '',
-        description: jobData.description || '',
-        location: jobData.location || '',
-        job_type: jobData.job_type || '',
-        salary_range: jobData.salary_range || '',
-        is_remote: jobData.is_remote || false,
-        is_urgent: jobData.is_urgent || false,
-        experience_level: jobData.experience_level || 'mid',
-        requirements: jobData.requirements || '',
-        benefits: jobData.benefits || '',
-        application_deadline: jobData.application_deadline ? new Date(jobData.application_deadline).toISOString().slice(0, 16) : '',
-        expires_at: jobData.expires_at ? new Date(jobData.expires_at).toISOString().slice(0, 16) : '',
-        skills: jobData.skills || []
-      };
-      
-      console.log('📝 Form data prepared:', convertedFormData);
-      setFormData(convertedFormData);
+      // Convert startup data to form data
+      setFormData({
+        name: mockStartupData.name || '',
+        description: mockStartupData.description || '',
+        industry: mockStartupData.industry || '',
+        location: mockStartupData.location || '',
+        website: mockStartupData.website || '',
+        founded_year: mockStartupData.founded_year || '',
+        employee_count: mockStartupData.employee_count || '',
+        funding_amount: mockStartupData.funding_amount || '',
+        valuation: mockStartupData.valuation || '',
+        stage: mockStartupData.stage || 'idea',
+        contact_email: mockStartupData.contact_email || '',
+        pitch_deck: null,
+        social_links: mockStartupData.social_links || {
+          linkedin: '',
+          twitter: '',
+          facebook: ''
+        },
+        tags: mockStartupData.tags || []
+      });
       
     } catch (error) {
-      console.error('❌ Error fetching job:', error);
-      
-      if (error.response?.status === 404) {
-        alert('Job not found');
-        navigate('/jobs');
-      } else if (error.response?.status === 403) {
-        alert('You do not have permission to view this job');
-        navigate('/jobs');
-      } else {
-        alert('Failed to load job details. Please try again.');
-      }
+      console.error('❌ Error fetching startup:', error);
+      alert('Failed to load startup details. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchJobTypes = async () => {
+  const fetchIndustries = async () => {
     try {
-      console.log('📡 Fetching job types...');
-      const response = await api.get('/jobs/types/');
-      console.log('✅ Job types response:', response.data);
-      
-      const jobTypesData = response.data.results || response.data || [];
-      setJobTypes(Array.isArray(jobTypesData) ? jobTypesData : []);
-      
-      console.log('📊 Loaded job types:', jobTypesData.length);
+      console.log('📡 Fetching industries...');
+      // Mock industries
+      setIndustries([
+        { id: 1, name: 'Technology' },
+        { id: 2, name: 'Healthcare' },
+        { id: 3, name: 'Fintech' },
+        { id: 4, name: 'E-commerce' },
+        { id: 5, name: 'Education' },
+        { id: 6, name: 'Real Estate' },
+        { id: 7, name: 'Food & Beverage' },
+        { id: 8, name: 'Transportation' }
+      ]);
     } catch (error) {
-      console.error('❌ Error fetching job types:', error);
-      setJobTypes([]);
+      console.error('❌ Error fetching industries:', error);
+      setIndustries([]);
     }
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    const { name, value, type, files } = e.target;
+    
+    if (type === 'file') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: files[0]
+      }));
+    } else if (name.includes('.')) {
+      // Handle nested objects like social_links
+      const [parent, child] = name.split('.');
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -129,57 +161,58 @@ const JobEditForm = () => {
     }
   };
 
-  const addSkill = () => {
-    if (skillInput.trim() && !formData.skills.some(s => s.skill === skillInput.trim())) {
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
       setFormData(prev => ({
         ...prev,
-        skills: [...prev.skills, {
-          skill: skillInput.trim(),
-          is_required: true,
-          proficiency_level: 'intermediate'
-        }]
+        tags: [...prev.tags, tagInput.trim()]
       }));
-      setSkillInput('');
+      setTagInput('');
     }
   };
 
-  const removeSkill = (index) => {
+  const removeTag = (index) => {
     setFormData(prev => ({
       ...prev,
-      skills: prev.skills.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateSkill = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.map((skill, i) => 
-        i === index ? { ...skill, [field]: value } : skill
-      )
+      tags: prev.tags.filter((_, i) => i !== index)
     }));
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Job title is required';
-    } else if (formData.title.length < 5) {
-      newErrors.title = 'Job title must be at least 5 characters';
+    if (!formData.name.trim()) {
+      newErrors.name = 'Startup name is required';
+    } else if (formData.name.length < 2) {
+      newErrors.name = 'Startup name must be at least 2 characters';
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Job description is required';
+      newErrors.description = 'Description is required';
     } else if (formData.description.length < 50) {
-      newErrors.description = 'Job description must be at least 50 characters';
+      newErrors.description = 'Description must be at least 50 characters';
     }
 
     if (!formData.location.trim()) {
       newErrors.location = 'Location is required';
     }
 
-    if (!formData.job_type) {
-      newErrors.job_type = 'Please select a job type';
+    if (!formData.industry) {
+      newErrors.industry = 'Please select an industry';
+    }
+
+    if (!formData.contact_email.trim()) {
+      newErrors.contact_email = 'Contact email is required';
+    } else if (!formData.contact_email.includes('@')) {
+      newErrors.contact_email = 'Please enter a valid email address';
+    }
+
+    if (formData.website && !formData.website.match(/^https?:\/\/.+/)) {
+      newErrors.website = 'Please enter a valid website URL';
+    }
+
+    if (formData.founded_year && (formData.founded_year < 1900 || formData.founded_year > new Date().getFullYear())) {
+      newErrors.founded_year = 'Please enter a valid founding year';
     }
 
     setErrors(newErrors);
@@ -189,7 +222,7 @@ const JobEditForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('🚀 Starting job update...');
+    console.log('🚀 Starting startup update...');
     console.log('📝 Form data:', formData);
     
     if (!validateForm()) {
@@ -200,76 +233,19 @@ const JobEditForm = () => {
     setSaving(true);
 
     try {
-      // Prepare the payload (only editable fields)
-      const payload = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        location: formData.location.trim(),
-        job_type: parseInt(formData.job_type),
-        salary_range: formData.salary_range.trim(),
-        is_remote: formData.is_remote,
-        is_urgent: formData.is_urgent,
-        experience_level: formData.experience_level,
-        requirements: formData.requirements.trim(),
-        benefits: formData.benefits.trim(),
-        skills: formData.skills
-      };
+      console.log('📤 Sending update payload...');
 
-      // Add optional datetime fields only if they have values
-      if (formData.application_deadline) {
-        payload.application_deadline = formData.application_deadline;
-      }
-      if (formData.expires_at) {
-        payload.expires_at = formData.expires_at;
-      }
+      // Mock API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log('📤 Sending payload:', payload);
-
-      const response = await api.patch(`/jobs/${id}/`, payload);
-
-      console.log('✅ Job update response:', response.data);
-
-      if (response.status === 200) {
-        const responseData = response.data;
-        
-        // Show appropriate success message based on approval requirement
-        if (responseData.requires_approval) {
-          alert('Job updated successfully! Your changes have been submitted for admin approval and will be reviewed before being published.');
-        } else {
-          alert('Job updated successfully!');
-        }
-        
-        navigate(`/jobs/${id}`);
-      }
-    } catch (error) {
-      console.error('❌ Error updating job:', error);
-      console.error('📋 Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
+      console.log('✅ Startup update successful');
+      alert('Startup updated successfully!');
+      onSuccess && onSuccess(formData);
+      onClose && onClose();
       
-      if (error.response?.status === 403) {
-        setErrors({ general: 'You do not have permission to edit this job. Only the job poster can edit jobs that are pending approval.' });
-      } else if (error.response?.status === 400) {
-        // Handle validation errors
-        if (error.response?.data && typeof error.response.data === 'object') {
-          setErrors(error.response.data);
-        } else {
-          setErrors({ general: 'Please check your input and try again.' });
-        }
-      } else if (error.response?.data) {
-        // Handle field-specific errors
-        if (typeof error.response.data === 'object') {
-          setErrors(error.response.data);
-        } else {
-          setErrors({ general: error.response.data.detail || error.response.data.message || 'Failed to update job' });
-        }
-      } else if (error.message.includes('Network Error')) {
-        setErrors({ general: 'Network error. Please check your connection and try again.' });
-      } else {
-        setErrors({ general: 'Failed to update job. Please try again.' });
-      }
+    } catch (error) {
+      console.error('❌ Error updating startup:', error);
+      setErrors({ general: 'Failed to update startup. Please try again.' });
     } finally {
       setSaving(false);
     }
@@ -277,7 +253,7 @@ const JobEditForm = () => {
 
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel? Your changes will be lost.')) {
-      navigate(`/jobs/${id}`);
+      onClose && onClose();
     }
   };
 
@@ -285,25 +261,25 @@ const JobEditForm = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-300 border-t-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading job details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-300 border-t-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading startup details...</p>
         </div>
       </div>
     );
   }
 
-  if (!job) {
+  if (!startup) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Job Not Found</h2>
-          <p className="text-gray-600 mb-4">The job you're trying to edit could not be found.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Startup Not Found</h2>
+          <p className="text-gray-600 mb-4">The startup you're trying to edit could not be found.</p>
           <button
-            onClick={() => navigate('/jobs')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={onClose}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
-            Back to Jobs
+            Back to Startups
           </button>
         </div>
       </div>
@@ -312,380 +288,448 @@ const JobEditForm = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <button
-            onClick={() => navigate(`/jobs/${id}`)}
+            onClick={onClose}
             className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Job Details
+            Back to Startup Details
           </button>
           
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Job Posting</h1>
-            <p className="text-gray-600">Update your job posting details below</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Edit Startup</h1>
+            <p className="text-gray-600">Update your startup information below</p>
           </div>
         </div>
 
         {/* Form Container */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <Building className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Job Information</h2>
+              <Building className="w-6 h-6 text-purple-600" />
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Startup Information</h2>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6">
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
                 {errors.general}
               </div>
             )}
 
-            {/* Debug Information in Development */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-                <strong>Debug Info:</strong> Job Types: {jobTypes.length} | Job Status: {job?.status} | Can Edit: {job?.can_edit ? 'Yes' : 'No'}
-                {Object.keys(errors).length > 0 && (
-                  <div className="mt-2">
-                    <strong>Errors:</strong> {JSON.stringify(errors, null, 2)}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Permission Warning */}
-            {job && !job.can_edit && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <AlertCircle className="text-red-500 mt-1 mr-3" size={20} />
+            <div className="space-y-6">
+              {/* Basic Information Section */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <Building className="w-5 h-5 mr-2 text-purple-600" />
+                  Basic Information
+                </h3>
+                
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Startup Name */}
                   <div>
-                    <h4 className="text-red-900 font-medium">Cannot Edit Job</h4>
-                    <p className="text-red-700 text-sm mt-1">
-                      This job cannot be edited because it has already been approved or you are not the original poster.
-                    </p>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Startup Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${errors.name ? 'border-red-300' : 'border-gray-300'}`}
+                      placeholder="e.g. TechCorp Inc."
+                    />
+                    {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
                   </div>
-                </div>
-              </div>
-            )}
 
-            {/* Status Notice */}
-            {job.status === 'rejected' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <AlertCircle className="text-yellow-500 mt-1 mr-3" size={20} />
-                  <div>
-                    <h4 className="text-yellow-900 font-medium">Job was previously rejected</h4>
-                    <p className="text-yellow-700 text-sm mt-1">
-                      Your job will be resubmitted for approval once you save these changes.
-                    </p>
-                    {job.rejection_reason && (
-                      <p className="text-yellow-700 text-sm mt-2">
-                        <strong>Rejection reason:</strong> {job.rejection_reason}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Job Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Job Title *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.title ? 'border-red-300' : 'border-gray-300'}`}
-                placeholder="e.g. Senior Frontend Developer"
-              />
-              {errors.title && <p className="text-red-600 text-sm mt-1">{errors.title}</p>}
-            </div>
-
-            {/* Job Details Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Job Type *
-                </label>
-                <select
-                  name="job_type"
-                  value={formData.job_type}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.job_type ? 'border-red-300' : 'border-gray-300'}`}
-                >
-                  <option value="">Select job type</option>
-                  {Array.isArray(jobTypes) && jobTypes.map(type => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.job_type && <p className="text-red-600 text-sm mt-1">{errors.job_type}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Experience Level
-                </label>
-                <select
-                  name="experience_level"
-                  value={formData.experience_level}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="entry">Entry Level</option>
-                  <option value="mid">Mid Level</option>
-                  <option value="senior">Senior Level</option>
-                  <option value="lead">Lead/Principal</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Location and Salary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location *
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.location ? 'border-red-300' : 'border-gray-300'}`}
-                  placeholder="e.g. San Francisco, CA"
-                />
-                {errors.location && <p className="text-red-600 text-sm mt-1">{errors.location}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Salary Range
-                </label>
-                <input
-                  type="text"
-                  name="salary_range"
-                  value={formData.salary_range}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g. $80,000 - $120,000"
-                />
-              </div>
-            </div>
-
-            {/* Work Options */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Work Options</h3>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="is_remote"
-                    checked={formData.is_remote}
-                    onChange={handleInputChange}
-                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Remote Work Available</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="is_urgent"
-                    checked={formData.is_urgent}
-                    onChange={handleInputChange}
-                    className="mr-2 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Urgent Hiring</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Job Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Job Description *
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={6}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.description ? 'border-red-300' : 'border-gray-300'}`}
-                placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
-              />
-              <div className="flex justify-between items-center mt-1">
-                {errors.description && <p className="text-red-600 text-sm">{errors.description}</p>}
-                <p className="text-gray-500 text-sm ml-auto">{formData.description.length}/5000 characters</p>
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Required Skills
-              </label>
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Add a skill (e.g. React, Python, etc.)"
-                />
-                <button
-                  type="button"
-                  onClick={addSkill}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              
-              {formData.skills.length > 0 && (
-                <div className="space-y-2">
-                  {formData.skills.map((skill, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="font-medium text-gray-900">{skill.skill}</span>
-                      <select
-                        value={skill.proficiency_level}
-                        onChange={(e) => updateSkill(index, 'proficiency_level', e.target.value)}
-                        className="px-2 py-1 border border-gray-300 rounded text-sm"
-                      >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                      </select>
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={skill.is_required}
-                          onChange={(e) => updateSkill(index, 'is_required', e.target.checked)}
-                          className="mr-1 h-3 w-3"
-                        />
-                        Required
+                  {/* Industry and Location */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Industry *
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(index)}
-                        className="ml-auto text-red-500 hover:text-red-700"
+                      <select
+                        name="industry"
+                        value={formData.industry}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${errors.industry ? 'border-red-300' : 'border-gray-300'}`}
                       >
-                        <X size={16} />
-                      </button>
+                        <option value="">Select industry</option>
+                        {industries.map(industry => (
+                          <option key={industry.id} value={industry.id}>
+                            {industry.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.industry && <p className="text-red-600 text-sm mt-1">{errors.industry}</p>}
                     </div>
-                  ))}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Location *
+                      </label>
+                      <input
+                        type="text"
+                        name="location"
+                        value={formData.location}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${errors.location ? 'border-red-300' : 'border-gray-300'}`}
+                        placeholder="e.g. San Francisco, CA"
+                      />
+                      {errors.location && <p className="text-red-600 text-sm mt-1">{errors.location}</p>}
+                    </div>
+                  </div>
+
+                  {/* Contact Email and Website */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contact Email *
+                      </label>
+                      <input
+                        type="email"
+                        name="contact_email"
+                        value={formData.contact_email}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${errors.contact_email ? 'border-red-300' : 'border-gray-300'}`}
+                        placeholder="contact@yourcompany.com"
+                      />
+                      {errors.contact_email && <p className="text-red-600 text-sm mt-1">{errors.contact_email}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Website
+                      </label>
+                      <input
+                        type="url"
+                        name="website"
+                        value={formData.website}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${errors.website ? 'border-red-300' : 'border-gray-300'}`}
+                        placeholder="https://yourcompany.com"
+                      />
+                      {errors.website && <p className="text-red-600 text-sm mt-1">{errors.website}</p>}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Description *
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows={5}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${errors.description ? 'border-red-300' : 'border-gray-300'}`}
+                      placeholder="Describe what your startup does, your mission, and what makes you unique..."
+                    />
+                    <div className="flex justify-between items-center mt-1">
+                      {errors.description && <p className="text-red-600 text-sm">{errors.description}</p>}
+                      <p className="text-gray-500 text-xs sm:text-sm ml-auto">{formData.description.length}/2000 characters</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Company Details Section */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-t border-gray-200 pt-6">
+                  <Users className="w-5 h-5 mr-2 text-purple-600" />
+                  Company Details
+                </h3>
+
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Founded Year and Employee Count */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Founded Year
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type="number"
+                          name="founded_year"
+                          value={formData.founded_year}
+                          onChange={handleInputChange}
+                          min="1900"
+                          max={new Date().getFullYear()}
+                          className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base transition-all duration-200 hover:border-purple-300 ${
+                            errors.founded_year ? 'border-red-300' : 'border-gray-300'
+                          }`}
+                          placeholder={new Date().getFullYear().toString()}
+                        />
+                      </div>
+                      {errors.founded_year && <p className="text-red-600 text-sm mt-1">{errors.founded_year}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Employee Count
+                      </label>
+                      <select
+                        name="employee_count"
+                        value={formData.employee_count}
+                        onChange={handleInputChange}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                      >
+                        <option value="">Select size</option>
+                        <option value="1-10">1-10 employees</option>
+                        <option value="11-50">11-50 employees</option>
+                        <option value="51-200">51-200 employees</option>
+                        <option value="201-500">201-500 employees</option>
+                        <option value="500+">500+ employees</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Stage and Funding */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Company Stage
+                      </label>
+                      <select
+                        name="stage"
+                        value={formData.stage}
+                        onChange={handleInputChange}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                      >
+                        <option value="idea">Idea Stage</option>
+                        <option value="startup">Startup</option>
+                        <option value="growth">Growth Stage</option>
+                        <option value="established">Established</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Funding Amount
+                      </label>
+                      <input
+                        type="text"
+                        name="funding_amount"
+                        value={formData.funding_amount}
+                        onChange={handleInputChange}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                        placeholder="e.g. $1M, $10M"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Valuation */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Valuation
+                    </label>
+                    <input
+                      type="text"
+                      name="valuation"
+                      value={formData.valuation}
+                      onChange={handleInputChange}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                      placeholder="e.g. $10M, $100M"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags Section */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-t border-gray-200 pt-6">
+                  <CheckCircle className="w-5 h-5 mr-2 text-purple-600" />
+                  Tags & Keywords
+                </h3>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tags (Skills, Technologies, Keywords)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                      className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                      placeholder="Add a tag (e.g. AI, Blockchain, React)"
+                    />
+                    <button
+                      type="button"
+                      onClick={addTag}
+                      className="px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap text-sm sm:text-base"
+                    >
+                      <Plus className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Add</span>
+                    </button>
+                  </div>
+                  
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm bg-purple-100 text-purple-800"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(index)}
+                            className="ml-1 sm:ml-2 text-purple-600 hover:text-purple-800"
+                          >
+                            <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Media & Social Links Section */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-t border-gray-200 pt-6">
+                  <ExternalLink className="w-5 h-5 mr-2 text-purple-600" />
+                  Media & Social Links
+                </h3>
+
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Pitch Deck */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Pitch Deck (Optional)
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
+                      <Upload className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-gray-400 mb-2" />
+                      <input
+                        type="file"
+                        name="pitch_deck"
+                        onChange={handleInputChange}
+                        accept=".pdf,.ppt,.pptx"
+                        className="hidden"
+                        id="pitch-upload"
+                      />
+                      <label htmlFor="pitch-upload" className="cursor-pointer">
+                        <span className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+                          Upload new pitch deck
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">PDF, PPT up to 25MB</p>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Social Links */}
+                  <div>
+                    <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-4">Social Media Links</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          LinkedIn
+                        </label>
+                        <input
+                          type="url"
+                          name="social_links.linkedin"
+                          value={formData.social_links.linkedin}
+                          onChange={handleInputChange}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                          placeholder="https://linkedin.com/company/yourcompany"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Twitter
+                        </label>
+                        <input
+                          type="url"
+                          name="social_links.twitter"
+                          value={formData.social_links.twitter}
+                          onChange={handleInputChange}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                          placeholder="https://twitter.com/yourcompany"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Facebook
+                        </label>
+                        <input
+                          type="url"
+                          name="social_links.facebook"
+                          value={formData.social_links.facebook}
+                          onChange={handleInputChange}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
+                          placeholder="https://facebook.com/yourcompany"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Notice */}
+              {startup.status === 'pending' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="text-yellow-500 mt-1 mr-3" size={20} />
+                    <div>
+                      <h4 className="text-yellow-900 font-medium">Startup Under Review</h4>
+                      <p className="text-yellow-700 text-sm mt-1">
+                        Your startup is currently being reviewed. Changes will be reflected once approved.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
 
-            {/* Requirements */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Requirements
-              </label>
-              <textarea
-                name="requirements"
-                value={formData.requirements}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="List specific requirements (one per line)&#10;• Bachelor's degree in Computer Science&#10;• 3+ years of experience with React&#10;• Strong communication skills"
-              />
-            </div>
-
-            {/* Benefits */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Benefits & Perks
-              </label>
-              <textarea
-                name="benefits"
-                value={formData.benefits}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="List benefits and perks (one per line)&#10;• Health, dental, and vision insurance&#10;• Flexible working hours&#10;• Stock options&#10;• Professional development budget"
-              />
-            </div>
-
-            {/* Deadlines */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Deadline
-                </label>
-                <input
-                  type="datetime-local"
-                  name="application_deadline"
-                  value={formData.application_deadline}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Job Expires At
-                </label>
-                <input
-                  type="datetime-local"
-                  name="expires_at"
-                  value={formData.expires_at}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Re-approval Notice */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <AlertCircle className="text-blue-500 mt-1 mr-3" size={20} />
-                <div>
-                  <h4 className="text-blue-900 font-medium">Review Required</h4>
-                  <p className="text-blue-700 text-sm mt-1">
-                    {job?.status === 'active' ? (
-                      'Since this job is currently active, your changes will reset it to pending status and require admin re-approval before being published again.'
-                    ) : (
-                      'Changes to your job posting will be reviewed by our admin team before being published. You\'ll receive a notification once it\'s approved.'
-                    )}
-                  </p>
+              {/* Update Notice */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="text-purple-500 mt-1 mr-3 flex-shrink-0" size={20} />
+                  <div>
+                    <h4 className="text-purple-900 font-medium text-sm sm:text-base">Update Information</h4>
+                    <p className="text-purple-700 text-xs sm:text-sm mt-1">
+                      Changes to your startup profile will be updated immediately. Make sure all information is accurate before saving.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200 mt-8">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium order-2 sm:order-1 text-sm sm:text-base"
                 disabled={saving}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={saving || (job && !job.can_edit)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={saving}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium order-1 sm:order-2 text-sm sm:text-base"
               >
                 {saving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Saving Changes...
+                    <span>Saving Changes...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle size={16} />
-                    Save Changes
+                    <Save className="w-4 h-4" />
+                    <span>Save Changes</span>
                   </>
                 )}
               </button>
@@ -697,4 +741,4 @@ const JobEditForm = () => {
   );
 };
 
-export default JobEditForm;
+export default StartupEditForm;
