@@ -1,4 +1,4 @@
-// src/components/Jobs.js - Enhanced Startlinker Modern Minimalistic Design
+// src/components/Jobs.js - Enhanced Responsive Design for All Screen Sizes
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -15,7 +15,8 @@ import {
   Eye, Share2, ChevronRight, Phone, Mail, Globe,
   Calendar, TrendingUp, Award, Target, Plus,
   Sparkles, Zap, SlidersHorizontal, Rocket, Crown,
-  Activity, BarChart3, Flame, TrendingDown, Search
+  Activity, BarChart3, Flame, TrendingDown, Search,
+  X, Menu, ChevronDown, ChevronUp, ArrowRight
 } from 'lucide-react';
 
 const Jobs = () => {
@@ -23,6 +24,7 @@ const Jobs = () => {
   const { success, error } = useNotifications();
   const [filterOptions, setFilterOptions] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [sortBy, setSortBy] = useState('-posted_at');
   const [viewMode, setViewMode] = useState('list');
   const [selectedJob, setSelectedJob] = useState(null);
@@ -32,6 +34,7 @@ const Jobs = () => {
   const [bookmarkedJobs, setBookmarkedJobs] = useState(new Set());
   const [likedJobs, setLikedJobs] = useState(new Set());
   const [refreshing, setRefreshing] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   
   // Search hook for managing search state
   const {
@@ -78,8 +81,6 @@ const Jobs = () => {
   const loadUserJobInteractions = async () => {
     try {
       // Load bookmarked and liked jobs if endpoints exist
-      // This would require additional backend endpoints
-      // For now, we'll initialize empty sets
       setBookmarkedJobs(new Set());
       setLikedJobs(new Set());
     } catch (error) {
@@ -95,7 +96,6 @@ const Jobs = () => {
         loadAppliedJobs(),
         loadUserJobInteractions()
       ]);
-      // Trigger search refresh
       search(filters);
       success('Jobs refreshed successfully');
     } catch (error) {
@@ -158,7 +158,6 @@ const Jobs = () => {
   const handleJobUploadSuccess = (jobData) => {
     setShowJobUploadForm(false);
     success('Job posted successfully! It will be reviewed by our admin team before being published.', 'Success');
-    // Optionally refresh the jobs list
     refreshJobs();
   };
 
@@ -171,7 +170,6 @@ const Jobs = () => {
         url: window.location.href
       });
     } else {
-      // Fallback: copy to clipboard
       const shareText = `${job.title} at ${job.startup_name} - ${window.location.href}`;
       navigator.clipboard.writeText(shareText).then(() => {
         success('Job link copied to clipboard!');
@@ -179,10 +177,9 @@ const Jobs = () => {
     }
   };
 
-  // Handle job bookmarking (placeholder - would need backend endpoint)
+  // Handle job bookmarking
   const handleBookmark = async (jobId) => {
     try {
-      // This would require a backend endpoint similar to startup bookmarking
       const isBookmarked = bookmarkedJobs.has(jobId);
       if (isBookmarked) {
         setBookmarkedJobs(prev => {
@@ -234,7 +231,6 @@ const Jobs = () => {
     const isLiked = likedJobs.has(job.id);
 
     const handleCardClick = (e) => {
-      // Don't navigate if clicking on buttons or interactive elements
       if (e.target.closest('button') || e.target.closest('a')) {
         return;
       }
@@ -244,65 +240,71 @@ const Jobs = () => {
     if (isGrid) {
       return (
         <div 
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1"
+          className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 hover:shadow-md transition-all duration-300 cursor-pointer group transform hover:-translate-y-1"
           onClick={handleCardClick}
         >
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{job.title}</h3>
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center flex-wrap gap-2 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                  {job.title}
+                </h3>
                 {job.is_urgent && (
-                  <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-200">
+                  <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-200 whitespace-nowrap">
                     Urgent
                   </span>
                 )}
                 {hasApplied && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-200">
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-200 whitespace-nowrap">
                     Applied
                   </span>
                 )}
               </div>
               
-              <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
-                <span className="flex items-center">
-                  <Building className="w-4 h-4 mr-1" />
-                  {job.startup_name}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3 text-sm text-gray-600">
+                <span className="flex items-center gap-1">
+                  <Building className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{job.startup_name}</span>
                 </span>
-                <span className="text-blue-600 font-medium px-2 py-1 bg-blue-50 rounded-lg border border-blue-200">{job.startup_industry}</span>
+                <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg border border-blue-200 text-xs font-medium self-start">
+                  {job.startup_industry}
+                </span>
               </div>
             </div>
           </div>
           
-          <p className="text-gray-600 mb-4 line-clamp-3">{job.description}</p>
+          <p className="text-gray-600 mb-4 text-sm line-clamp-3">{job.description}</p>
           
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-600">{job.location}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{job.location}</span>
                 {job.is_remote && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full border border-purple-200">Remote</span>
+                  <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full border border-purple-200 whitespace-nowrap">
+                    Remote
+                  </span>
                 )}
               </div>
-              <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-600">{job.salary_range || 'Not specified'}</span>
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="text-gray-600 truncate">{job.salary_range || 'Not specified'}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <span className="text-gray-600">{job.posted_ago}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <span className="text-gray-600">{job.application_count || 0} applicants</span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200">
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200 whitespace-nowrap">
                 {job.job_type_name}
               </span>
-              <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full border border-gray-200">
+              <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full border border-gray-200 whitespace-nowrap">
                 {job.experience_level_display}
               </span>
             </div>
@@ -318,7 +320,7 @@ const Jobs = () => {
                   </span>
                 ))}
                 {job.skills_list.length > 3 && (
-                  <span className="text-xs text-gray-500">+{job.skills_list.length - 3}</span>
+                  <span className="text-xs text-gray-500 py-1">+{job.skills_list.length - 3}</span>
                 )}
               </div>
             )}
@@ -327,7 +329,7 @@ const Jobs = () => {
           <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
             {/* Action Buttons */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleBookmark(job.id)}
                   className={`p-2 rounded-xl transition-colors ${
@@ -344,7 +346,7 @@ const Jobs = () => {
                 </button>
               </div>
               
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
                 <Eye className="w-3 h-3" />
                 <span>{job.view_count || 0} views</span>
               </div>
@@ -366,36 +368,40 @@ const Jobs = () => {
         </div>
       );
     } else {
-      // List view
+      // List view - Enhanced for mobile
       return (
         <div 
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group"
+          className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 hover:shadow-md transition-all duration-300 cursor-pointer group"
           onClick={handleCardClick}
         >
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="flex-shrink-0 hidden sm:block">
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-semibold text-lg border border-blue-200">
                 {job.startup_name?.charAt(0) || 'J'}
               </div>
             </div>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">{job.title}</h3>
-                  {job.is_urgent && (
-                    <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-200">
-                      Urgent
-                    </span>
-                  )}
-                  {hasApplied && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-200">
-                      Applied
-                    </span>
-                  )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                    {job.title}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {job.is_urgent && (
+                      <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full border border-red-200">
+                        Urgent
+                      </span>
+                    )}
+                    {hasApplied && (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full border border-green-200">
+                        Applied
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2 sm:order-last">
                   <button
                     onClick={() => handleBookmark(job.id)}
                     className={`p-2 rounded-xl transition-colors ${
@@ -413,34 +419,36 @@ const Jobs = () => {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
-                <span className="flex items-center">
-                  <Building className="w-4 h-4 mr-1" />
-                  {job.startup_name}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-3 text-sm text-gray-600">
+                <span className="flex items-center gap-1">
+                  <Building className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{job.startup_name}</span>
                 </span>
-                <span className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {job.location}
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{job.location}</span>
+                  {job.is_remote && (
+                    <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full border border-purple-200 ml-2 whitespace-nowrap">
+                      Remote
+                    </span>
+                  )}
                 </span>
-                {job.is_remote && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full border border-purple-200">Remote</span>
-                )}
-                <span className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {job.posted_ago}
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4 flex-shrink-0" />
+                  <span>{job.posted_ago}</span>
                 </span>
                 {job.salary_range && (
-                  <span className="flex items-center">
-                    <DollarSign className="w-4 h-4 mr-1" />
-                    {job.salary_range}
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{job.salary_range}</span>
                   </span>
                 )}
               </div>
               
-              <p className="text-gray-700 mb-3 line-clamp-2">{job.description}</p>
+              <p className="text-gray-700 mb-4 line-clamp-2 text-sm sm:text-base">{job.description}</p>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200">
                     {job.job_type_name}
                   </span>
@@ -453,7 +461,7 @@ const Jobs = () => {
                 <button
                   onClick={() => handleApply(job)}
                   disabled={hasApplied}
-                  className={`px-6 py-2 rounded-xl font-medium text-sm transition-colors ${
+                  className={`px-6 py-2 rounded-xl font-medium text-sm transition-colors whitespace-nowrap ${
                     hasApplied
                       ? 'bg-green-100 text-green-700 cursor-not-allowed border border-green-200'
                       : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md'
@@ -487,7 +495,7 @@ const Jobs = () => {
 
   if (searchError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
         <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
@@ -505,29 +513,29 @@ const Jobs = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
 
         {/* Hero Header Section */}
-        <div className="text-center mb-12">
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-12">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100 p-6 sm:p-8 md:p-12">
             <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-center space-x-3 mb-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg">
-                  <Briefcase className="w-8 h-8 text-white" />
+                  <Briefcase className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 text-center">
                   Job <span className="text-purple-600">Opportunities</span>
                 </h1>
               </div>
-              <p className="text-xl text-gray-600 mb-8">
+              <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8">
                 Discover your next career opportunity with innovative startups
               </p>
               
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 <button
                   onClick={() => setShowJobUploadForm(true)}
-                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-2xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-xl sm:rounded-2xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Post a Job
@@ -535,7 +543,7 @@ const Jobs = () => {
                 <button
                   onClick={refreshJobs}
                   disabled={refreshing}
-                  className="inline-flex items-center px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-2xl hover:border-purple-300 hover:text-purple-600 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-xl sm:rounded-2xl hover:border-purple-300 hover:text-purple-600 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
                 >
                   <RefreshCw className={`w-5 h-5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                   Refresh Jobs
@@ -546,15 +554,29 @@ const Jobs = () => {
         </div>
 
         {/* Main Content Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 lg:gap-8">
           
-          {/* Left Column - Filters & Stats (1/4 width) */}
+          {/* Left Column - Stats & Quick Filters (Hidden on mobile, collapsible) */}
           <div className="xl:col-span-1">
-            <div className="space-y-6">
+            {/* Mobile Toggle Button */}
+            <div className="xl:hidden mb-4">
+              <button
+                onClick={() => setShowStats(!showStats)}
+                className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium text-gray-900">Job Market Stats</span>
+                </div>
+                {showStats ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className={`space-y-6 ${showStats ? 'block' : 'hidden xl:block'}`}>
               
               {/* Quick Stats */}
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 border-b border-blue-100">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
                       <BarChart3 className="w-5 h-5 text-white" />
@@ -566,8 +588,8 @@ const Jobs = () => {
                   </div>
                 </div>
                 
-                <div className="p-6">
-                  <div className="space-y-4">
+                <div className="p-4 sm:p-6">
+                  <div className="space-y-3 sm:space-y-4">
                     <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl border border-purple-200">
                       <span className="text-sm font-medium text-purple-700">Total Jobs</span>
                       <span className="text-lg font-bold text-purple-600">{totalResults.toLocaleString()}</span>
@@ -595,8 +617,8 @@ const Jobs = () => {
               </div>
 
               {/* Quick Filters */}
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 border-b border-green-100">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 sm:p-6 border-b border-green-100">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
                       <Filter className="w-5 h-5 text-white" />
@@ -608,7 +630,7 @@ const Jobs = () => {
                   </div>
                 </div>
                 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="space-y-3">
                     {[
                       { label: 'Remote Only', filter: 'is_remote', value: 'true', icon: Globe, color: 'purple' },
@@ -640,8 +662,8 @@ const Jobs = () => {
               </div>
 
               {/* Popular Job Types */}
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 border-b border-orange-100">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 sm:p-6 border-b border-orange-100">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl shadow-lg">
                       <Flame className="w-5 h-5 text-white" />
@@ -653,7 +675,7 @@ const Jobs = () => {
                   </div>
                 </div>
                 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="space-y-3">
                     {[
                       { name: 'Software Engineer', count: '150+', trend: 'up' },
@@ -682,10 +704,10 @@ const Jobs = () => {
 
           {/* Right Column - Main Content (3/4 width) */}
           <div className="xl:col-span-3">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
 
               {/* Search Bar */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
                 <SearchBar
                   value={filters.search || ''}
                   onChange={handleSearch}
@@ -699,9 +721,9 @@ const Jobs = () => {
               {/* Filter Controls */}
               <div className="space-y-4">
                 {/* Control Bar */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center space-x-4">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                       <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center px-4 py-2.5 rounded-xl font-medium transition-colors ${
@@ -760,12 +782,12 @@ const Jobs = () => {
                     </div>
 
                     {/* Sort Dropdown */}
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                       <label className="text-sm font-medium text-gray-700">Sort by:</label>
                       <select
                         value={sortBy}
                         onChange={(e) => handleSortChange(e.target.value)}
-                        className="px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
                       >
                         {sortOptions.map(option => (
                           <option key={option.value} value={option.value}>
@@ -779,7 +801,7 @@ const Jobs = () => {
 
                 {/* Active Filter Chips */}
                 {Object.keys(filters).length > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4">
                     <FilterChips
                       filters={filters}
                       onRemoveFilter={removeFilter}
@@ -791,13 +813,13 @@ const Jobs = () => {
 
                 {/* Advanced Filters Panel */}
                 {showFilters && filterOptions && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
                     <div className="flex items-center space-x-3 mb-6">
                       <Sparkles className="w-5 h-5 text-blue-600" />
                       <h3 className="text-lg font-semibold text-gray-900">Advanced Filters</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                       
                       {/* Job Type Filter */}
                       <div>
@@ -886,7 +908,7 @@ const Jobs = () => {
                     </div>
 
                     {/* Checkboxes Row */}
-                    <div className="mt-6 flex flex-wrap gap-4">
+                    <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-4">
                       <label className="flex items-center space-x-3 p-3 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors cursor-pointer">
                         <input
                           type="checkbox"
@@ -917,7 +939,7 @@ const Jobs = () => {
               {jobs.length > 0 ? (
                 <div className={`${
                   viewMode === 'grid' 
-                    ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6' 
+                    ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6' 
                     : 'space-y-4'
                 }`}>
                   {jobs.map((job) => (
@@ -926,7 +948,7 @@ const Jobs = () => {
                 </div>
               ) : (
                 /* Empty State */
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-8 sm:p-12 text-center">
                   {loading ? (
                     <div className="flex flex-col items-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-200 border-t-blue-600 mb-4"></div>
@@ -981,7 +1003,7 @@ const Jobs = () => {
                 <div className="flex justify-center">
                   <button
                     onClick={loadMore}
-                    className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-2xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium transform hover:-translate-y-1"
+                    className="flex items-center space-x-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl sm:rounded-2xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium transform hover:-translate-y-1"
                   >
                     <RefreshCw className="w-5 h-5" />
                     <span>Load More Jobs</span>
@@ -995,7 +1017,7 @@ const Jobs = () => {
               {/* Loading More Indicator */}
               {loading && jobs.length > 0 && (
                 <div className="flex justify-center">
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm p-6">
                     <div className="flex items-center space-x-3">
                       <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-blue-600"></div>
                       <span className="text-gray-600 font-medium">Loading more opportunities...</span>
@@ -1024,7 +1046,32 @@ const Jobs = () => {
         onSuccess={handleJobUploadSuccess}
       />
 
-      {/* Custom CSS for line clamp */}
+      {/* Mobile Filters Overlay */}
+      {showMobileFilters && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setShowMobileFilters(false)} />
+          <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-white shadow-xl overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Mobile filter content would go here */}
+              <div className="space-y-6">
+                {/* Add mobile-specific filter UI */}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom CSS for line clamp and responsive utilities */}
       <style jsx>{`
         .line-clamp-2 {
           display: -webkit-box;
@@ -1038,6 +1085,39 @@ const Jobs = () => {
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        /* Responsive grid improvements */
+        @media (max-width: 640px) {
+          .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+          }
+        }
+
+        @media (min-width: 640px) and (max-width: 1024px) {
+          .sm\\:grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        /* Ensure buttons are touch-friendly on mobile */
+        @media (max-width: 768px) {
+          button {
+            min-height: 44px;
+          }
+        }
+
+        /* Improved text scaling for better readability */
+        @media (max-width: 480px) {
+          .text-lg {
+            font-size: 1rem;
+            line-height: 1.5rem;
+          }
+          
+          .text-xl {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+          }
         }
       `}</style>
     </div>
