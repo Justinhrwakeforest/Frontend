@@ -1,101 +1,173 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, Sparkles, Calendar, ArrowLeft, ArrowRight, Upload, ExternalLink } from 'lucide-react';
+import { X, Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, Sparkles, Calendar, ArrowLeft, ArrowRight, Upload, ExternalLink, Save } from 'lucide-react';
 
-const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
+const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
+  // Mock user data - replace with your auth system
+  const user = {
+    email: 'user@example.com',
+    is_authenticated: true
+  };
+
+  // Mock API function
+  const mockApi = {
+    get: async (url) => {
+      console.log('Mock API GET:', url);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (url.includes('/jobs/types/')) {
+        return {
+          data: [
+            { id: 1, name: 'Full-time' },
+            { id: 2, name: 'Part-time' },
+            { id: 3, name: 'Contract' },
+            { id: 4, name: 'Internship' },
+            { id: 5, name: 'Freelance' }
+          ]
+        };
+      }
+      
+      if (url.includes('/startups/')) {
+        return {
+          data: {
+            results: [
+              { id: 1, name: 'TechCorp Inc.', is_approved: true },
+              { id: 2, name: 'InnovateLab', is_approved: true },
+              { id: 3, name: 'DataFlow Solutions', is_approved: true },
+              { id: 4, name: 'AI Dynamics', is_approved: true },
+              { id: 5, name: 'CloudTech Systems', is_approved: true }
+            ]
+          }
+        };
+      }
+      
+      throw new Error('Endpoint not found');
+    },
+    
+    post: async (url, data) => {
+      console.log('Mock API POST:', url, data);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (url.includes('/jobs/')) {
+        // Simulate successful job creation
+        return {
+          data: {
+            id: Math.floor(Math.random() * 1000),
+            ...data,
+            status: 'pending',
+            is_verified: false,
+            posted_at: new Date().toISOString(),
+            view_count: 0,
+            application_count: 0
+          },
+          message: 'Job posted successfully!'
+        };
+      }
+      
+      throw new Error('API endpoint not implemented');
+    }
+  };
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
-    industry: '',
+    startup: '',
     location: '',
-    website: '',
-    founded_year: '',
-    employee_count: '',
-    funding_amount: '',
-    valuation: '',
-    stage: 'idea',
-    contact_email: '',
-    pitch_deck: null,
-    social_links: {
-      linkedin: '',
-      twitter: '',
-      facebook: ''
-    },
-    tags: []
+    job_type: '',
+    salary_range: '',
+    is_remote: false,
+    is_urgent: false,
+    experience_level: 'mid',
+    requirements: '',
+    benefits: '',
+    application_deadline: '',
+    expires_at: '',
+    company_email: '',
+    skills: []
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [industries, setIndustries] = useState([]);
-  const [tagInput, setTagInput] = useState('');
+  const [jobTypes, setJobTypes] = useState([]);
+  const [startups, setStartups] = useState([]);
+  const [skillInput, setSkillInput] = useState('');
 
-  // Mock industries data
+  // Load data when modal opens
   useEffect(() => {
     if (isOpen) {
-      setIndustries([
-        { id: 1, name: 'Technology' },
-        { id: 2, name: 'Healthcare' },
-        { id: 3, name: 'Fintech' },
-        { id: 4, name: 'E-commerce' },
-        { id: 5, name: 'Education' },
-        { id: 6, name: 'Real Estate' },
-        { id: 7, name: 'Food & Beverage' },
-        { id: 8, name: 'Transportation' }
-      ]);
+      loadJobTypes();
+      loadStartups();
       resetForm();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  const loadJobTypes = async () => {
+    try {
+      console.log('📡 Loading job types...');
+      const response = await mockApi.get('/jobs/types/');
+      console.log('✅ Job types loaded:', response.data);
+      setJobTypes(response.data || []);
+    } catch (error) {
+      console.error('❌ Error loading job types:', error);
+      setJobTypes([
+        { id: 1, name: 'Full-time' },
+        { id: 2, name: 'Part-time' },
+        { id: 3, name: 'Contract' },
+        { id: 4, name: 'Internship' }
+      ]);
+    }
+  };
+
+  const loadStartups = async () => {
+    try {
+      console.log('📡 Loading startups...');
+      const response = await mockApi.get('/startups/');
+      const startupsData = response.data?.results || response.data || [];
+      console.log('✅ Startups loaded:', startupsData);
+      setStartups(startupsData);
+    } catch (error) {
+      console.error('❌ Error loading startups:', error);
+      // Mock data fallback
+      setStartups([
+        { id: 1, name: 'TechCorp Inc.', is_approved: true },
+        { id: 2, name: 'InnovateLab', is_approved: true },
+        { id: 3, name: 'DataFlow Solutions', is_approved: true }
+      ]);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
-      name: '',
+      title: '',
       description: '',
-      industry: '',
+      startup: '',
       location: '',
-      website: '',
-      founded_year: '',
-      employee_count: '',
-      funding_amount: '',
-      valuation: '',
-      stage: 'idea',
-      contact_email: '',
-      pitch_deck: null,
-      social_links: {
-        linkedin: '',
-        twitter: '',
-        facebook: ''
-      },
-      tags: []
+      job_type: '',
+      salary_range: '',
+      is_remote: false,
+      is_urgent: false,
+      experience_level: 'mid',
+      requirements: '',
+      benefits: '',
+      application_deadline: '',
+      expires_at: '',
+      company_email: user?.email || '',
+      skills: []
     });
     setErrors({});
     setCurrentStep(1);
-    setTagInput('');
+    setSkillInput('');
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, files } = e.target;
+    const { name, value, type, checked } = e.target;
     
-    if (type === 'file') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: files[0]
-      }));
-    } else if (name.includes('.')) {
-      // Handle nested objects like social_links
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -103,20 +175,33 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+  const addSkill = () => {
+    if (skillInput.trim() && !formData.skills.some(s => s.skill === skillInput.trim())) {
       setFormData(prev => ({
         ...prev,
-        tags: [...prev.tags, tagInput.trim()]
+        skills: [...prev.skills, {
+          skill: skillInput.trim(),
+          is_required: true,
+          proficiency_level: 'intermediate'
+        }]
       }));
-      setTagInput('');
+      setSkillInput('');
     }
   };
 
-  const removeTag = (index) => {
+  const removeSkill = (index) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter((_, i) => i !== index)
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSkill = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.map((skill, i) => 
+        i === index ? { ...skill, [field]: value } : skill
+      )
     }));
   };
 
@@ -125,39 +210,39 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
 
     if (step === 1) {
       // Basic Information
-      if (!formData.name.trim()) {
-        newErrors.name = 'Startup name is required';
-      } else if (formData.name.length < 2) {
-        newErrors.name = 'Startup name must be at least 2 characters';
+      if (!formData.title.trim()) {
+        newErrors.title = 'Job title is required';
+      } else if (formData.title.length < 5) {
+        newErrors.title = 'Job title must be at least 5 characters';
       }
 
       if (!formData.description.trim()) {
-        newErrors.description = 'Description is required';
+        newErrors.description = 'Job description is required';
       } else if (formData.description.length < 50) {
-        newErrors.description = 'Description must be at least 50 characters';
-      }
-
-      if (!formData.industry) {
-        newErrors.industry = 'Please select an industry';
+        newErrors.description = 'Job description must be at least 50 characters';
       }
 
       if (!formData.location.trim()) {
         newErrors.location = 'Location is required';
       }
 
-      if (!formData.contact_email.trim()) {
-        newErrors.contact_email = 'Contact email is required';
-      } else if (!formData.contact_email.includes('@')) {
-        newErrors.contact_email = 'Please enter a valid email address';
-      }
-    } else if (step === 2) {
-      // Company Details
-      if (formData.website && !formData.website.match(/^https?:\/\/.+/)) {
-        newErrors.website = 'Please enter a valid website URL';
+      if (!formData.job_type) {
+        newErrors.job_type = 'Please select a job type';
       }
 
-      if (formData.founded_year && (formData.founded_year < 1900 || formData.founded_year > new Date().getFullYear())) {
-        newErrors.founded_year = 'Please enter a valid founding year';
+      if (!formData.company_email.trim()) {
+        newErrors.company_email = 'Company email is required';
+      } else if (!formData.company_email.includes('@')) {
+        newErrors.company_email = 'Please enter a valid email address';
+      }
+    } else if (step === 2) {
+      // Additional Details - most are optional but we can add validation
+      if (formData.application_deadline && formData.expires_at) {
+        const appDeadline = new Date(formData.application_deadline);
+        const expiry = new Date(formData.expires_at);
+        if (appDeadline >= expiry) {
+          newErrors.application_deadline = 'Application deadline must be before job expiry date';
+        }
       }
     }
 
@@ -185,23 +270,55 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('🚀 Submitting job posting...');
+      console.log('📝 Form data:', formData);
+
+      // Prepare the payload
+      const payload = {
+        ...formData,
+        startup: formData.startup ? parseInt(formData.startup) : null,
+        job_type: parseInt(formData.job_type)
+      };
+
+      console.log('📤 Sending payload:', payload);
+
+      const response = await mockApi.post('/jobs/', payload);
       
-      onSuccess && onSuccess(formData);
+      console.log('✅ Job posting successful:', response.data);
+      
+      // Show success message with approval info
+      const jobData = response.data.job || response.data;
+      const message = response.data.message || 'Job posted successfully!';
+      
+      alert(`${message}\n\nYour job posting has been submitted and will be reviewed by our admin team before being published. You'll receive a notification once it's approved.`);
+      
+      onSuccess && onSuccess(jobData);
       onClose();
+      
     } catch (err) {
-      console.error('Error creating startup:', err);
-      setErrors({ general: 'Failed to create startup. Please try again.' });
+      console.error('❌ Error creating job:', err);
+      
+      if (err.response?.data) {
+        if (typeof err.response.data === 'object' && err.response.data.error) {
+          setErrors({ general: err.response.data.error });
+        } else if (typeof err.response.data === 'object') {
+          // Handle field-specific errors
+          setErrors(err.response.data);
+        } else {
+          setErrors({ general: 'Failed to create job posting. Please check your information and try again.' });
+        }
+      } else {
+        setErrors({ general: 'Failed to create job posting. Please check your internet connection and try again.' });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const steps = [
-    { number: 1, title: 'Basic Info', icon: Building },
+    { number: 1, title: 'Job Info', icon: Building },
     { number: 2, title: 'Details', icon: Users },
-    { number: 3, title: 'Media & Links', icon: ExternalLink }
+    { number: 3, title: 'Review', icon: CheckCircle }
   ];
 
   if (!isOpen) return null;
@@ -219,14 +336,14 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full max-w-4xl">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 text-white">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 sm:px-6 pt-4 sm:pt-6 pb-4 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg sm:text-xl lg:text-2xl leading-6 font-bold">
-                  Register Your Startup
+                  Post a New Job
                 </h3>
-                <p className="mt-1 text-purple-100 text-sm sm:text-base">
-                  Join our ecosystem and connect with talent
+                <p className="mt-1 text-blue-100 text-sm sm:text-base">
+                  Find the perfect candidate for your team
                 </p>
               </div>
               <button
@@ -249,9 +366,9 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                     <div key={step.number} className="flex items-center flex-1">
                       <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors ${
                         isCompleted
-                          ? 'bg-white text-purple-600 border-white'
+                          ? 'bg-white text-blue-600 border-white'
                           : isActive
-                          ? 'bg-purple-500 text-white border-purple-300'
+                          ? 'bg-blue-500 text-white border-blue-300'
                           : 'bg-transparent text-white/60 border-white/30'
                       }`}>
                         {isCompleted ? (
@@ -287,8 +404,8 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
               {currentStep === 1 && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                    <Sparkles className="w-5 h-5 text-purple-600" />
-                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">Basic Information</h4>
+                    <Sparkles className="w-5 h-5 text-blue-600" />
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">Job Information</h4>
                   </div>
 
                   {errors.general && (
@@ -297,58 +414,91 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                     </div>
                   )}
 
-                  {/* Startup Name */}
+                  {/* Job Title */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Startup Name *
+                      Job Title *
                     </label>
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
+                      name="title"
+                      value={formData.title}
                       onChange={handleInputChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${
-                        errors.name ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
+                        errors.title ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="e.g. TechCorp Inc."
+                      placeholder="e.g. Senior Software Engineer"
                     />
-                    {errors.name && (
+                    {errors.title && (
                       <div className="mt-1 flex items-center text-sm text-red-600">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.name}
+                        {errors.title}
                       </div>
                     )}
                   </div>
 
-                  {/* Industry and Location */}
+                  {/* Startup and Job Type */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Industry *
+                        Startup
                       </label>
                       <select
-                        name="industry"
-                        value={formData.industry}
+                        name="startup"
+                        value={formData.startup}
                         onChange={handleInputChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${
-                          errors.industry ? 'border-red-300' : 'border-gray-300'
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
+                          errors.startup ? 'border-red-300' : 'border-gray-300'
                         }`}
                       >
-                        <option value="">Select industry</option>
-                        {industries.map(industry => (
-                          <option key={industry.id} value={industry.id}>
-                            {industry.name}
+                        <option value="">Select startup (optional)</option>
+                        {startups.filter(s => s.is_approved !== false).map(startup => (
+                          <option key={startup.id} value={startup.id}>
+                            {startup.name}
                           </option>
                         ))}
                       </select>
-                      {errors.industry && (
+                      {errors.startup && (
                         <div className="mt-1 flex items-center text-sm text-red-600">
                           <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.industry}
+                          {errors.startup}
+                        </div>
+                      )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        You can post independently or select your company
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Job Type *
+                      </label>
+                      <select
+                        name="job_type"
+                        value={formData.job_type}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
+                          errors.job_type ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">Select job type</option>
+                        {jobTypes.map(type => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.job_type && (
+                        <div className="mt-1 flex items-center text-sm text-red-600">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.job_type}
                         </div>
                       )}
                     </div>
+                  </div>
 
+                  {/* Location and Salary */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Location *
@@ -358,7 +508,7 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                         name="location"
                         value={formData.location}
                         onChange={handleInputChange}
-                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
                           errors.location ? 'border-red-300' : 'border-gray-300'
                         }`}
                         placeholder="e.g. San Francisco, CA"
@@ -370,45 +520,62 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                       )}
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Salary Range
+                      </label>
+                      <input
+                        type="text"
+                        name="salary_range"
+                        value={formData.salary_range}
+                        onChange={handleInputChange}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        placeholder="e.g. $80,000 - $120,000"
+                      />
+                    </div>
                   </div>
 
-                  {/* Contact Email */}
+                  {/* Company Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Email *
+                      Company Email *
                     </label>
                     <input
                       type="email"
-                      name="contact_email"
-                      value={formData.contact_email}
+                      name="company_email"
+                      value={formData.company_email}
                       onChange={handleInputChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${
-                        errors.contact_email ? 'border-red-300' : 'border-gray-300'
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
+                        errors.company_email ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="contact@yourcompany.com"
+                      placeholder="hiring@company.com"
                     />
-                    {errors.contact_email && (
+                    {errors.company_email && (
                       <div className="mt-1 flex items-center text-sm text-red-600">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.contact_email}
+                        {errors.company_email}
                       </div>
                     )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      This email will be used for verification and applicant communication
+                    </p>
                   </div>
 
-                  {/* Description */}
+                  {/* Job Description */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company Description *
+                      Job Description *
                     </label>
                     <textarea
                       name="description"
                       value={formData.description}
                       onChange={handleInputChange}
-                      rows={4}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${
+                      rows={6}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
                         errors.description ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="Describe what your startup does, your mission, and what makes you unique..."
+                      placeholder="Describe the role, responsibilities, and what makes this position exciting..."
                     />
                     <div className="flex justify-between items-center mt-1">
                       {errors.description && (
@@ -417,281 +584,305 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                           {errors.description}
                         </div>
                       )}
-                      <p className="text-gray-500 text-xs sm:text-sm ml-auto">{formData.description.length}/2000 characters</p>
+                      <p className="text-gray-500 text-xs sm:text-sm ml-auto">{formData.description.length}/5000 characters</p>
                     </div>
+                  </div>
+
+                  {/* Experience Level */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Experience Level
+                    </label>
+                    <select
+                      name="experience_level"
+                      value={formData.experience_level}
+                      onChange={handleInputChange}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                    >
+                      <option value="entry">Entry Level</option>
+                      <option value="mid">Mid Level</option>
+                      <option value="senior">Senior Level</option>
+                      <option value="lead">Lead/Principal</option>
+                    </select>
+                  </div>
+
+                  {/* Checkboxes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label className="flex items-center space-x-3 p-3 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="is_remote"
+                        checked={formData.is_remote}
+                        onChange={handleInputChange}
+                        className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-medium text-purple-700">Remote work allowed</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center space-x-3 p-3 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="is_urgent"
+                        checked={formData.is_urgent}
+                        onChange={handleInputChange}
+                        className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-4 h-4 text-red-500" />
+                        <span className="text-sm font-medium text-red-700">Urgent hiring</span>
+                      </div>
+                    </label>
                   </div>
                 </div>
               )}
 
-              {/* Step 2: Company Details */}
+              {/* Step 2: Additional Details */}
               {currentStep === 2 && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                    <Users className="w-5 h-5 text-purple-600" />
-                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">Company Details</h4>
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">Additional Details</h4>
                   </div>
 
-                  {/* Website */}
+                  {/* Requirements */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Website
+                      Job Requirements
                     </label>
-                    <input
-                      type="url"
-                      name="website"
-                      value={formData.website}
+                    <textarea
+                      name="requirements"
+                      value={formData.requirements}
                       onChange={handleInputChange}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base ${
-                        errors.website ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="https://yourcompany.com"
-                    />
-                    {errors.website && (
-                      <div className="mt-1 flex items-center text-sm text-red-600">
-                        <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.website}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Founded Year and Employee Count */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Founded Year
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="number"
-                          name="founded_year"
-                          value={formData.founded_year}
-                          onChange={handleInputChange}
-                          min="1900"
-                          max={new Date().getFullYear()}
-                          className={`w-full pl-10 pr-3 sm:pr-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base transition-all duration-200 hover:border-purple-300 ${
-                            errors.founded_year ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                          placeholder={new Date().getFullYear().toString()}
-                        />
-                      </div>
-                      {errors.founded_year && (
-                        <div className="mt-1 flex items-center text-sm text-red-600">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.founded_year}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Employee Count
-                      </label>
-                      <select
-                        name="employee_count"
-                        value={formData.employee_count}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                      >
-                        <option value="">Select size</option>
-                        <option value="1-10">1-10 employees</option>
-                        <option value="11-50">11-50 employees</option>
-                        <option value="51-200">51-200 employees</option>
-                        <option value="201-500">201-500 employees</option>
-                        <option value="500+">500+ employees</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Stage and Funding */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Stage
-                      </label>
-                      <select
-                        name="stage"
-                        value={formData.stage}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                      >
-                        <option value="idea">Idea Stage</option>
-                        <option value="startup">Startup</option>
-                        <option value="growth">Growth Stage</option>
-                        <option value="established">Established</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Funding Amount
-                      </label>
-                      <input
-                        type="text"
-                        name="funding_amount"
-                        value={formData.funding_amount}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                        placeholder="e.g. $1M, $10M"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Valuation */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company Valuation
-                    </label>
-                    <input
-                      type="text"
-                      name="valuation"
-                      value={formData.valuation}
-                      onChange={handleInputChange}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                      placeholder="e.g. $10M, $100M"
+                      rows={4}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                      placeholder="List the key requirements, qualifications, and must-have skills..."
                     />
                   </div>
 
-                  {/* Tags */}
+                  {/* Benefits */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tags (Skills, Technologies, Keywords)
+                      Benefits & Perks
+                    </label>
+                    <textarea
+                      name="benefits"
+                      value={formData.benefits}
+                      onChange={handleInputChange}
+                      rows={4}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                      placeholder="Describe the benefits, perks, and what makes your company a great place to work..."
+                    />
+                  </div>
+
+                  {/* Skills */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Required Skills
                     </label>
                     <div className="flex flex-col sm:flex-row gap-2 mb-3">
                       <input
                         type="text"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                        className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                        placeholder="Add a tag (e.g. AI, Blockchain, React)"
+                        value={skillInput}
+                        onChange={(e) => setSkillInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                        className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        placeholder="Add a skill (e.g. React, Python, Project Management)"
                       />
                       <button
                         type="button"
-                        onClick={addTag}
-                        className="px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap text-sm sm:text-base"
+                        onClick={addSkill}
+                        className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap text-sm sm:text-base"
                       >
                         <Plus className="w-4 h-4 sm:mr-2" />
                         <span className="hidden sm:inline">Add</span>
                       </button>
                     </div>
                     
-                    {formData.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {formData.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm bg-purple-100 text-purple-800"
-                          >
-                            {tag}
+                    {formData.skills.length > 0 && (
+                      <div className="space-y-2">
+                        {formData.skills.map((skill, index) => (
+                          <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="flex-1 text-sm font-medium">{skill.skill}</span>
+                            <select
+                              value={skill.proficiency_level}
+                              onChange={(e) => updateSkill(index, 'proficiency_level', e.target.value)}
+                              className="px-2 py-1 text-xs border border-gray-300 rounded"
+                            >
+                              <option value="beginner">Beginner</option>
+                              <option value="intermediate">Intermediate</option>
+                              <option value="advanced">Advanced</option>
+                              <option value="expert">Expert</option>
+                            </select>
+                            <label className="flex items-center text-xs">
+                              <input
+                                type="checkbox"
+                                checked={skill.is_required}
+                                onChange={(e) => updateSkill(index, 'is_required', e.target.checked)}
+                                className="mr-1"
+                              />
+                              Required
+                            </label>
                             <button
                               type="button"
-                              onClick={() => removeTag(index)}
-                              className="ml-1 sm:ml-2 text-purple-600 hover:text-purple-800"
+                              onClick={() => removeSkill(index)}
+                              className="text-red-600 hover:text-red-800 p-1"
                             >
-                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <X className="w-4 h-4" />
                             </button>
-                          </span>
+                          </div>
                         ))}
                       </div>
                     )}
                   </div>
+
+                  {/* Deadlines */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Application Deadline
+                      </label>
+                      <input
+                        type="date"
+                        name="application_deadline"
+                        value={formData.application_deadline}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base ${
+                          errors.application_deadline ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                      {errors.application_deadline && (
+                        <div className="mt-1 flex items-center text-sm text-red-600">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.application_deadline}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Job Expires At
+                      </label>
+                      <input
+                        type="date"
+                        name="expires_at"
+                        value={formData.expires_at}
+                        onChange={handleInputChange}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Step 3: Media & Links */}
+              {/* Step 3: Review */}
               {currentStep === 3 && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                    <ExternalLink className="w-5 h-5 text-purple-600" />
-                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">Media & Social Links</h4>
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">Review & Submit</h4>
                   </div>
 
-                  {/* Pitch Deck */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Pitch Deck (Optional)
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
-                      <Upload className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-gray-400 mb-2" />
-                      <input
-                        type="file"
-                        name="pitch_deck"
-                        onChange={handleInputChange}
-                        accept=".pdf,.ppt,.pptx"
-                        className="hidden"
-                        id="pitch-upload"
-                      />
-                      <label htmlFor="pitch-upload" className="cursor-pointer">
-                        <span className="text-sm text-purple-600 hover:text-purple-700 font-medium">
-                          Upload pitch deck
-                        </span>
-                        <p className="text-xs text-gray-500 mt-1">PDF, PPT up to 25MB</p>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Social Links */}
-                  <div>
-                    <h5 className="text-sm sm:text-base font-medium text-gray-900 mb-4">Social Media Links</h5>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          LinkedIn
-                        </label>
-                        <input
-                          type="url"
-                          name="social_links.linkedin"
-                          value={formData.social_links.linkedin}
-                          onChange={handleInputChange}
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                          placeholder="https://linkedin.com/company/yourcompany"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Twitter
-                        </label>
-                        <input
-                          type="url"
-                          name="social_links.twitter"
-                          value={formData.social_links.twitter}
-                          onChange={handleInputChange}
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                          placeholder="https://twitter.com/yourcompany"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Facebook
-                        </label>
-                        <input
-                          type="url"
-                          name="social_links.facebook"
-                          value={formData.social_links.facebook}
-                          onChange={handleInputChange}
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
-                          placeholder="https://facebook.com/yourcompany"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Review Information */}
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-start">
-                      <AlertCircle className="text-purple-500 mt-1 mr-3 flex-shrink-0" size={20} />
+                      <AlertCircle className="text-blue-500 mt-1 mr-3 flex-shrink-0" size={20} />
                       <div>
-                        <h4 className="text-purple-900 font-medium text-sm sm:text-base">Review Required</h4>
-                        <p className="text-purple-700 text-xs sm:text-sm mt-1">
-                          Your startup registration will be reviewed by our team before being published. 
-                          You'll receive a notification once it's approved.
+                        <h4 className="text-blue-900 font-medium text-sm sm:text-base">Job Approval Process</h4>
+                        <p className="text-blue-700 text-xs sm:text-sm mt-1">
+                          Your job posting will be reviewed by our admin team before being published. 
+                          You'll receive a notification once it's approved and goes live.
                         </p>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Job Preview */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h5 className="text-lg font-semibold text-gray-900 mb-4">Job Preview</h5>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <h6 className="font-medium text-gray-900 text-lg">{formData.title}</h6>
+                        <p className="text-sm text-gray-600">
+                          {formData.startup ? startups.find(s => s.id == formData.startup)?.name : 'Independent Job Posting'} • {formData.location}
+                          {formData.is_remote && " • Remote"}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          {jobTypes.find(t => t.id == formData.job_type)?.name}
+                        </span>
+                        <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
+                          {formData.experience_level.charAt(0).toUpperCase() + formData.experience_level.slice(1)} Level
+                        </span>
+                        {formData.is_urgent && (
+                          <span className="px-3 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
+                            Urgent
+                          </span>
+                        )}
+                        {formData.salary_range && (
+                          <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                            {formData.salary_range}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <h6 className="font-medium text-gray-900 mb-2">Description</h6>
+                        <p className="text-sm text-gray-700 line-clamp-3">{formData.description}</p>
+                      </div>
+
+                      {formData.requirements && (
+                        <div>
+                          <h6 className="font-medium text-gray-900 mb-2">Requirements</h6>
+                          <p className="text-sm text-gray-700 line-clamp-2">{formData.requirements}</p>
+                        </div>
+                      )}
+
+                      {formData.benefits && (
+                        <div>
+                          <h6 className="font-medium text-gray-900 mb-2">Benefits</h6>
+                          <p className="text-sm text-gray-700 line-clamp-2">{formData.benefits}</p>
+                        </div>
+                      )}
+
+                      {formData.skills.length > 0 && (
+                        <div>
+                          <h6 className="font-medium text-gray-900 mb-2">Skills ({formData.skills.length})</h6>
+                          <div className="flex flex-wrap gap-1">
+                            {formData.skills.slice(0, 5).map((skill, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                              >
+                                {skill.skill}
+                              </span>
+                            ))}
+                            {formData.skills.length > 5 && (
+                              <span className="text-xs text-gray-500 py-1">+{formData.skills.length - 5} more</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {(formData.application_deadline || formData.expires_at) && (
+                        <div>
+                          <h6 className="font-medium text-gray-900 mb-2">Important Dates</h6>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {formData.application_deadline && (
+                              <p>Application Deadline: {new Date(formData.application_deadline).toLocaleDateString()}</p>
+                            )}
+                            {formData.expires_at && (
+                              <p>Position Expires: {new Date(formData.expires_at).toLocaleDateString()}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -724,7 +915,7 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm sm:text-base flex items-center justify-center"
+                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base flex items-center justify-center"
                   >
                     <span>Next Step</span>
                     <ArrowRight className="w-4 h-4 sm:ml-2" />
@@ -733,17 +924,17 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        <span>Registering...</span>
+                        <span>Posting Job...</span>
                       </>
                     ) : (
                       <>
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Register Startup</span>
+                        <Save className="w-4 h-4" />
+                        <span>Post Job</span>
                       </>
                     )}
                   </button>
@@ -753,8 +944,65 @@ const StartupUploadForm = ({ isOpen, onClose, onSuccess }) => {
           </form>
         </div>
       </div>
+
+      {/* Custom Styles */}
+      <style jsx>{`
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 640px) {
+          .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+          }
+        }
+
+        /* Ensure buttons are touch-friendly on mobile */
+        @media (max-width: 768px) {
+          button {
+            min-height: 44px;
+          }
+        }
+
+        /* Loading spinner */
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+
+        /* Enhanced focus states for accessibility */
+        button:focus,
+        input:focus,
+        textarea:focus,
+        select:focus {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
+        }
+
+        /* Smooth transitions */
+        button,
+        .transition-colors {
+          transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 };
 
-export default StartupUploadForm;
+export default JobUploadForm;
