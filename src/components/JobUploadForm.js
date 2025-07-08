@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, Sparkles, Calendar, ArrowLeft, ArrowRight, Upload, ExternalLink, Save } from 'lucide-react';
-import api from '../services/api'; // Use your real API service
 
 const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [useTokenAuth, setUseTokenAuth] = useState(false); // Toggle for auth method
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -29,6 +29,118 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
   const [skillInput, setSkillInput] = useState('');
   const [debugInfo, setDebugInfo] = useState('');
   const [dataLoaded, setDataLoaded] = useState(false);
+
+  // API configuration - update this to match your backend URL
+  const API_BASE_URL = 'http://localhost:8000/api';
+  
+  // Helper function to get auth token
+  const getAuthToken = () => {
+    // Try different methods to get the auth token
+    const token = localStorage.getItem('authToken') || 
+                  localStorage.getItem('access_token') || 
+                  localStorage.getItem('token') ||
+                  sessionStorage.getItem('authToken') ||
+                  sessionStorage.getItem('access_token') ||
+                  sessionStorage.getItem('token');
+    return token;
+  };
+
+  // Helper function to get CSRF token if using Django's CSRF protection
+  const getCSRFToken = () => {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  };
+
+  // Helper function to make API calls
+  const apiCall = async (endpoint, options = {}) => {
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    // Get auth token
+    const authToken = getAuthToken();
+    const csrfToken = getCSRFToken();
+    
+    // Build headers - start with minimal headers
+    const headers = {
+      ...options.headers
+    };
+    
+    // Only set Content-Type for requests with body
+    if (options.body) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    // Add CSRF token if it exists (required for Django session auth)
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    // Try different auth methods based on what's available
+    if (authToken && useTokenAuth) {
+      // Try Bearer token first
+      headers['Authorization'] = `Bearer ${authToken}`;
+      
+      // Uncomment one of these if your API uses a different format:
+      // headers['Authorization'] = `Token ${authToken}`;
+      // headers['Authorization'] = `JWT ${authToken}`;
+    }
+    
+    const defaultOptions = {
+      credentials: 'include', // This is crucial for session-based auth
+      ...options,
+      headers
+    };
+    
+    console.log('🔍 API Request:', {
+      url,
+      method: options.method || 'GET',
+      headers: defaultOptions.headers,
+      credentials: defaultOptions.credentials
+    });
+    
+    const response = await fetch(url, defaultOptions);
+    
+    // Log response details for debugging
+    console.log('📡 API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { message: errorText };
+      }
+      
+      console.error('❌ API Error:', {
+        status: response.status,
+        error
+      });
+      
+      // Special handling for 401 errors
+      if (response.status === 401) {
+        throw new Error('You must be logged in to post jobs. Please log in and try again.');
+      }
+      
+      throw new Error(error.detail || error.message || error.error || `HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  };
 
   // Load data when modal opens
   useEffect(() => {
@@ -60,15 +172,14 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
       console.log('📡 Loading job types from API...');
       setDebugInfo('Loading job types from API...');
       
-      const response = await api.get('/jobs/types/');
-      console.log('✅ Job types API response:', response);
-      console.log('✅ Job types data:', response.data);
+      const data = await apiCall('/jobs/types/');
+      console.log('✅ Job types data:', data);
       
       // Check if response has data
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        setJobTypes(response.data);
-        setDebugInfo(`✅ Loaded ${response.data.length} job types from API`);
-        console.log('✅ Job types set successfully:', response.data);
+      if (data && Array.isArray(data) && data.length > 0) {
+        setJobTypes(data);
+        setDebugInfo(`✅ Loaded ${data.length} job types from API`);
+        console.log('✅ Job types set successfully:', data);
       } else {
         console.warn('⚠️ API returned empty or invalid job types, using fallback');
         throw new Error('API returned empty or invalid data');
@@ -95,8 +206,8 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
   const loadStartups = async () => {
     try {
       console.log('📡 Loading startups...');
-      const response = await api.get('/startups/');
-      const startupsData = response.data?.results || response.data || [];
+      const data = await apiCall('/startups/');
+      const startupsData = data?.results || data || [];
       console.log('✅ Startups loaded:', startupsData);
       
       // Ensure we have an array
@@ -271,6 +382,14 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
     console.log('📝 Current step:', currentStep);
     console.log('📝 Form data:', formData);
     
+    // Check if user is authenticated
+    const authToken = getAuthToken();
+    if (!authToken) {
+      alert('❌ Authentication Required!\n\nYou must be logged in to post jobs.\nPlease log in and try again.');
+      console.error('❌ No authentication token found');
+      return;
+    }
+    
     if (currentStep !== 3) {
       console.log('❌ Not on final step, cannot submit');
       return;
@@ -309,7 +428,6 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
       const payload = {
         title: formData.title.trim().substring(0, 100), // Limit title length
         description: formData.description.trim().substring(0, 5000), // Limit description length
-        startup: formData.startup && !isNaN(parseInt(formData.startup)) ? parseInt(formData.startup) : null,
         location: formData.location.trim().substring(0, 100),
         job_type: parseInt(formData.job_type),
         salary_range: formData.salary_range ? formData.salary_range.trim().substring(0, 50) : '',
@@ -323,6 +441,11 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
         company_email: formData.company_email.trim().toLowerCase(),
         skills: Array.isArray(formData.skills) ? formData.skills.slice(0, 20) : [] // Limit skills
       };
+      
+      // Only add startup if one is selected
+      if (formData.startup && !isNaN(parseInt(formData.startup))) {
+        payload.startup = parseInt(formData.startup);
+      }
 
       // Additional validation
       if (isNaN(payload.job_type)) {
@@ -334,16 +457,18 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
       setDebugInfo(`📤 Sending to API: ${JSON.stringify(payload, null, 2)}`);
 
       // Make the actual API call to your Django backend
-      const response = await api.post('/jobs/', payload);
+      const response = await apiCall('/jobs/', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
       
       console.log('✅ Job posting successful!');
-      console.log('📊 Response status:', response.status);
-      console.log('📊 Response data:', response.data);
+      console.log('📊 Response data:', response);
       
-      setDebugInfo(`✅ Success! Job created with ID: ${response.data.id}, Status: ${response.data.status}`);
+      setDebugInfo(`✅ Success! Job created with ID: ${response.id}, Status: ${response.status}`);
       
       // Check the response structure
-      const jobData = response.data;
+      const jobData = response;
       
       // Show detailed success message
       const successMessage = `
@@ -384,35 +509,23 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
       
     } catch (err) {
       console.error('❌ Error creating job:', err);
-      console.error('❌ Error details:', {
-        status: err.response?.status,
-        data: err.response?.data,
-        message: err.message,
-        stack: err.stack
-      });
       
-      setDebugInfo(`❌ ERROR: ${err.message} | Status: ${err.response?.status} | Data: ${JSON.stringify(err.response?.data)}`);
+      setDebugInfo(`❌ ERROR: ${err.message}`);
       
       let errorMessage = 'Failed to create job posting.';
       
-      if (err.response?.data) {
-        if (typeof err.response.data === 'object' && err.response.data.error) {
-          errorMessage = err.response.data.error;
-          setErrors({ general: err.response.data.error });
-        } else if (typeof err.response.data === 'object') {
-          // Handle field-specific errors from Django
-          setErrors(err.response.data);
-          errorMessage = 'Please check the form for errors.';
-        } else {
-          errorMessage = 'Server error occurred.';
-          setErrors({ general: 'Failed to create job posting. Please check your information and try again.' });
-        }
-      } else if (err.message.includes('Network Error')) {
-        errorMessage = 'Network error. Please check your internet connection.';
-        setErrors({ general: 'Network error. Please check your internet connection and try again.' });
-      } else {
+      // Check for authentication error
+      if (err.message.includes('logged in') || err.message.includes('401')) {
+        errorMessage = 'Authentication required. Please log in and try again.';
+        setErrors({ general: errorMessage });
+        
+        // Optionally redirect to login page
+        // window.location.href = '/login?next=/jobs';
+      } else if (err.message) {
         errorMessage = err.message;
-        setErrors({ general: 'Failed to create job posting. Please check your internet connection and try again.' });
+        setErrors({ general: err.message });
+      } else {
+        setErrors({ general: 'Failed to create job posting. Please check your information and try again.' });
       }
       
       // Show error alert
@@ -562,42 +675,59 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                         type="button"
                         onClick={async () => {
                           try {
-                            console.log('🧪 Testing job types API...');
-                            const response = await api.get('/jobs/types/');
-                            console.log('API Response:', response);
-                            alert(`✅ API Test Success!\n\nStatus: ${response.status}\nData: ${JSON.stringify(response.data, null, 2)}`);
+                            console.log('🧪 Testing authentication...');
+                            
+                            // Check what auth tokens we have
+                            console.log('📍 Auth Token Search:');
+                            console.log('- localStorage authToken:', localStorage.getItem('authToken'));
+                            console.log('- localStorage access_token:', localStorage.getItem('access_token'));
+                            console.log('- localStorage token:', localStorage.getItem('token'));
+                            console.log('- sessionStorage authToken:', sessionStorage.getItem('authToken'));
+                            console.log('- sessionStorage access_token:', sessionStorage.getItem('access_token'));
+                            console.log('- sessionStorage token:', sessionStorage.getItem('token'));
+                            console.log('- CSRF Token:', getCSRFToken());
+                            console.log('- Cookies:', document.cookie);
+                            
+                            // Try to get current user info
+                            const response = await apiCall('/auth/user/', { method: 'GET' });
+                            console.log('✅ Auth check successful:', response);
+                            alert(`✅ Authenticated as: ${response.username || response.email || 'User'}\n\nYou should be able to post jobs.`);
                           } catch (error) {
-                            console.error('API Test Failed:', error);
-                            alert(`❌ API Test Failed!\n\nError: ${error.message}\nStatus: ${error.response?.status}\nData: ${JSON.stringify(error.response?.data, null, 2)}`);
+                            console.error('❌ Auth check failed:', error);
+                            
+                            // Try without auth headers (session only)
+                            try {
+                              console.log('🔄 Trying session-only auth...');
+                              const response = await fetch(`${API_BASE_URL}/auth/user/`, {
+                                credentials: 'include',
+                                headers: {
+                                  'X-CSRFToken': getCSRFToken() || ''
+                                }
+                              });
+                              
+                              if (response.ok) {
+                                const data = await response.json();
+                                console.log('✅ Session auth successful:', data);
+                                alert(`✅ Authenticated via session as: ${data.username || data.email || 'User'}\n\nThe issue might be with token headers. Try submitting without token auth.`);
+                              } else {
+                                throw new Error(`Session auth failed: ${response.status}`);
+                              }
+                            } catch (sessionError) {
+                              console.error('❌ Session auth also failed:', sessionError);
+                              alert(`❌ Authentication Check Failed!\n\nPlease ensure you're logged in.\n\nDebug info in console.`);
+                            }
                           }
                         }}
-                        className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs hover:bg-yellow-200"
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200"
                       >
-                        Test Job Types API
+                        Check Auth Status
                       </button>
                     <button
                       type="button"
                       onClick={() => {
                         console.log('🔄 Clearing all errors and resetting form...');
                         setErrors({});
-                        setFormData({
-                          title: '',
-                          description: '',
-                          startup: '',
-                          location: '',
-                          job_type: '',
-                          salary_range: '',
-                          is_remote: false,
-                          is_urgent: false,
-                          experience_level: 'mid',
-                          requirements: '',
-                          benefits: '',
-                          application_deadline: '',
-                          expires_at: '',
-                          company_email: '',
-                          skills: []
-                        });
-                        setCurrentStep(1);
+                        resetForm();
                         alert('Form reset! All errors cleared.');
                       }}
                       className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200"
@@ -1044,19 +1174,20 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                           
                           try {
                             console.log('📤 Sending clean test payload:', testPayload);
-                            const response = await api.post('/jobs/', testPayload);
-                            console.log('✅ Test submission successful:', response.data);
-                            alert(`✅ Test Submission Success!\n\nJob ID: ${response.data.id}\nStatus: ${response.data.status}\nTitle: ${response.data.title}\n\nCheck the admin panel!`);
+                            const response = await apiCall('/jobs/', {
+                              method: 'POST',
+                              body: JSON.stringify(testPayload)
+                            });
+                            console.log('✅ Test submission successful:', response);
+                            alert(`✅ Test Submission Success!\n\nJob ID: ${response.id}\nStatus: ${response.status}\nTitle: ${response.title}\n\nCheck the admin panel!`);
                           } catch (error) {
                             console.error('❌ Test submission failed:', error);
-                            console.error('❌ Error response:', error.response?.data);
-                            alert(`❌ Test Submission Failed!\n\nError: ${error.message}\nStatus: ${error.response?.status}\nResponse: ${JSON.stringify(error.response?.data, null, 2)}`);
+                            alert(`❌ Test Submission Failed!\n\nError: ${error.message}`);
                           }
                         }}
                         className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs hover:bg-red-200"
                       >
                         Test Submit Job
-                      </button>
                       </button>
                       <button
                         type="button"
