@@ -1,73 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Building, MapPin, DollarSign, Clock, Users, Mail, AlertCircle, CheckCircle, Sparkles, Calendar, ArrowLeft, ArrowRight, Upload, ExternalLink, Save } from 'lucide-react';
+import api from '../services/api'; // Use your real API service
 
 const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
-  // Mock user data - replace with your auth system
-  const user = {
-    email: 'user@example.com',
-    is_authenticated: true
-  };
-
-  // Mock API function
-  const mockApi = {
-    get: async (url) => {
-      console.log('Mock API GET:', url);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (url.includes('/jobs/types/')) {
-        return {
-          data: [
-            { id: 1, name: 'Full-time' },
-            { id: 2, name: 'Part-time' },
-            { id: 3, name: 'Contract' },
-            { id: 4, name: 'Internship' },
-            { id: 5, name: 'Freelance' }
-          ]
-        };
-      }
-      
-      if (url.includes('/startups/')) {
-        return {
-          data: {
-            results: [
-              { id: 1, name: 'TechCorp Inc.', is_approved: true },
-              { id: 2, name: 'InnovateLab', is_approved: true },
-              { id: 3, name: 'DataFlow Solutions', is_approved: true },
-              { id: 4, name: 'AI Dynamics', is_approved: true },
-              { id: 5, name: 'CloudTech Systems', is_approved: true }
-            ]
-          }
-        };
-      }
-      
-      throw new Error('Endpoint not found');
-    },
-    
-    post: async (url, data) => {
-      console.log('Mock API POST:', url, data);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (url.includes('/jobs/')) {
-        // Simulate successful job creation
-        return {
-          data: {
-            id: Math.floor(Math.random() * 1000),
-            ...data,
-            status: 'pending',
-            is_verified: false,
-            posted_at: new Date().toISOString(),
-            view_count: 0,
-            application_count: 0
-          },
-          message: 'Job posted successfully!'
-        };
-      }
-      
-      throw new Error('API endpoint not implemented');
-    }
-  };
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     title: '',
@@ -92,53 +27,97 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
   const [jobTypes, setJobTypes] = useState([]);
   const [startups, setStartups] = useState([]);
   const [skillInput, setSkillInput] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Load data when modal opens
   useEffect(() => {
     if (isOpen) {
+      console.log('🔄 Modal opened, loading data...');
+      
+      // Always set fallback data first to ensure dropdown works
+      const fallbackJobTypes = [
+        { id: 1, name: 'Full-time' },
+        { id: 2, name: 'Part-time' },
+        { id: 3, name: 'Contract' },
+        { id: 4, name: 'Internship' },
+        { id: 5, name: 'Freelance' }
+      ];
+      
+      setJobTypes(fallbackJobTypes);
+      setStartups([]);
+      setDataLoaded(true); // Allow form to show immediately
+      
+      // Then try to load from API
       loadJobTypes();
       loadStartups();
       resetForm();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const loadJobTypes = async () => {
     try {
-      console.log('📡 Loading job types...');
-      const response = await mockApi.get('/jobs/types/');
-      console.log('✅ Job types loaded:', response.data);
-      setJobTypes(response.data || []);
+      console.log('📡 Loading job types from API...');
+      setDebugInfo('Loading job types from API...');
+      
+      const response = await api.get('/jobs/types/');
+      console.log('✅ Job types API response:', response);
+      console.log('✅ Job types data:', response.data);
+      
+      // Check if response has data
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        setJobTypes(response.data);
+        setDebugInfo(`✅ Loaded ${response.data.length} job types from API`);
+        console.log('✅ Job types set successfully:', response.data);
+      } else {
+        console.warn('⚠️ API returned empty or invalid job types, using fallback');
+        throw new Error('API returned empty or invalid data');
+      }
     } catch (error) {
-      console.error('❌ Error loading job types:', error);
-      setJobTypes([
+      console.error('❌ Error loading job types from API:', error);
+      console.log('🔄 Using fallback job types...');
+      
+      // Always use fallback job types if API fails
+      const fallbackJobTypes = [
         { id: 1, name: 'Full-time' },
         { id: 2, name: 'Part-time' },
         { id: 3, name: 'Contract' },
-        { id: 4, name: 'Internship' }
-      ]);
+        { id: 4, name: 'Internship' },
+        { id: 5, name: 'Freelance' }
+      ];
+      
+      setJobTypes(fallbackJobTypes);
+      setDebugInfo(`❌ API Error: ${error.message} | Using ${fallbackJobTypes.length} fallback job types`);
+      console.log('✅ Fallback job types set:', fallbackJobTypes);
     }
   };
 
   const loadStartups = async () => {
     try {
       console.log('📡 Loading startups...');
-      const response = await mockApi.get('/startups/');
+      const response = await api.get('/startups/');
       const startupsData = response.data?.results || response.data || [];
       console.log('✅ Startups loaded:', startupsData);
-      setStartups(startupsData);
+      
+      // Ensure we have an array
+      const startupsArray = Array.isArray(startupsData) ? startupsData : [];
+      setStartups(startupsArray);
+      setDebugInfo(prev => prev + ` | Startups loaded: ${startupsArray.length} startups`);
     } catch (error) {
       console.error('❌ Error loading startups:', error);
-      // Mock data fallback
-      setStartups([
-        { id: 1, name: 'TechCorp Inc.', is_approved: true },
-        { id: 2, name: 'InnovateLab', is_approved: true },
-        { id: 3, name: 'DataFlow Solutions', is_approved: true }
-      ]);
+      setDebugInfo(prev => prev + ` | Error loading startups: ${error.message}`);
+      
+      // Fallback to empty array - user can post without startup
+      setStartups([]);
+    } finally {
+      setDataLoaded(true);
     }
   };
 
   const resetForm = () => {
+    // Get user email from context or localStorage if available
+    const userEmail = localStorage.getItem('userEmail') || '';
+    
     setFormData({
       title: '',
       description: '',
@@ -153,12 +132,13 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
       benefits: '',
       application_deadline: '',
       expires_at: '',
-      company_email: user?.email || '',
+      company_email: userEmail,
       skills: []
     });
     setErrors({});
     setCurrentStep(1);
     setSkillInput('');
+    setDebugInfo('');
   };
 
   const handleInputChange = (e) => {
@@ -210,39 +190,62 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
 
     if (step === 1) {
       // Basic Information
-      if (!formData.title.trim()) {
+      if (!formData.title || !formData.title.trim()) {
         newErrors.title = 'Job title is required';
-      } else if (formData.title.length < 5) {
+      } else if (formData.title.trim().length < 5) {
         newErrors.title = 'Job title must be at least 5 characters';
+      } else if (formData.title.length > 100) {
+        newErrors.title = 'Job title must be less than 100 characters';
       }
 
-      if (!formData.description.trim()) {
+      if (!formData.description || !formData.description.trim()) {
         newErrors.description = 'Job description is required';
-      } else if (formData.description.length < 50) {
+      } else if (formData.description.trim().length < 50) {
         newErrors.description = 'Job description must be at least 50 characters';
+      } else if (formData.description.length > 5000) {
+        newErrors.description = 'Job description must be less than 5000 characters';
       }
 
-      if (!formData.location.trim()) {
+      if (!formData.location || !formData.location.trim()) {
         newErrors.location = 'Location is required';
+      } else if (formData.location.trim().length < 2) {
+        newErrors.location = 'Location must be at least 2 characters';
       }
 
       if (!formData.job_type) {
         newErrors.job_type = 'Please select a job type';
       }
 
-      if (!formData.company_email.trim()) {
+      if (!formData.company_email || !formData.company_email.trim()) {
         newErrors.company_email = 'Company email is required';
-      } else if (!formData.company_email.includes('@')) {
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.company_email.trim())) {
         newErrors.company_email = 'Please enter a valid email address';
       }
     } else if (step === 2) {
-      // Additional Details - most are optional but we can add validation
+      // Additional Details - validate dates
       if (formData.application_deadline && formData.expires_at) {
         const appDeadline = new Date(formData.application_deadline);
         const expiry = new Date(formData.expires_at);
         if (appDeadline >= expiry) {
           newErrors.application_deadline = 'Application deadline must be before job expiry date';
         }
+      }
+    } else if (step === 3) {
+      // Final validation before submission
+      if (!formData.title || !formData.title.trim()) {
+        newErrors.title = 'Job title is required';
+      }
+      if (!formData.description || !formData.description.trim()) {
+        newErrors.description = 'Job description is required';
+      }
+      if (!formData.location || !formData.location.trim()) {
+        newErrors.location = 'Location is required';
+      }
+      if (!formData.job_type) {
+        newErrors.job_type = 'Job type is required';
+      }
+      if (!formData.company_email || !formData.company_email.trim()) {
+        newErrors.company_email = 'Company email is required';
       }
     }
 
@@ -262,54 +265,159 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🚀 Form submit triggered!');
+    console.log('📝 Current step:', currentStep);
+    console.log('📝 Form data:', formData);
+    
+    if (currentStep !== 3) {
+      console.log('❌ Not on final step, cannot submit');
+      return;
+    }
     
     if (!validateStep(currentStep)) {
+      console.log('❌ Form validation failed');
       return;
     }
 
     setLoading(true);
+    setDebugInfo('🚀 Starting job submission...');
 
     try {
-      console.log('🚀 Submitting job posting...');
-      console.log('📝 Form data:', formData);
+      console.log('🚀 Submitting job posting to REAL API...');
+      
+      // Validate required fields before sending
+      console.log('🔍 Validating payload...');
+      if (!formData.title || formData.title.trim().length < 5) {
+        throw new Error('Job title is required and must be at least 5 characters');
+      }
+      if (!formData.description || formData.description.trim().length < 50) {
+        throw new Error('Job description is required and must be at least 50 characters');
+      }
+      if (!formData.location || formData.location.trim().length < 2) {
+        throw new Error('Location is required');
+      }
+      if (!formData.job_type) {
+        throw new Error('Job type is required');
+      }
+      if (!formData.company_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.company_email)) {
+        throw new Error('Valid company email is required');
+      }
 
-      // Prepare the payload
+      // Prepare the payload for your Django backend
       const payload = {
-        ...formData,
-        startup: formData.startup ? parseInt(formData.startup) : null,
-        job_type: parseInt(formData.job_type)
+        title: formData.title.trim().substring(0, 100), // Limit title length
+        description: formData.description.trim().substring(0, 5000), // Limit description length
+        startup: formData.startup && !isNaN(parseInt(formData.startup)) ? parseInt(formData.startup) : null,
+        location: formData.location.trim().substring(0, 100),
+        job_type: parseInt(formData.job_type),
+        salary_range: formData.salary_range ? formData.salary_range.trim().substring(0, 50) : '',
+        is_remote: Boolean(formData.is_remote),
+        is_urgent: Boolean(formData.is_urgent),
+        experience_level: formData.experience_level || 'mid',
+        requirements: formData.requirements ? formData.requirements.trim().substring(0, 2000) : '',
+        benefits: formData.benefits ? formData.benefits.trim().substring(0, 2000) : '',
+        application_deadline: formData.application_deadline || null,
+        expires_at: formData.expires_at || null,
+        company_email: formData.company_email.trim().toLowerCase(),
+        skills: Array.isArray(formData.skills) ? formData.skills.slice(0, 20) : [] // Limit skills
       };
 
-      console.log('📤 Sending payload:', payload);
+      // Additional validation
+      if (isNaN(payload.job_type)) {
+        throw new Error('Invalid job type selected');
+      }
 
-      const response = await mockApi.post('/jobs/', payload);
+      console.log('📤 Final payload validation passed');
+      console.log('📤 Sending sanitized payload to /jobs/:', payload);
+      setDebugInfo(`📤 Sending to API: ${JSON.stringify(payload, null, 2)}`);
+
+      // Make the actual API call to your Django backend
+      const response = await api.post('/jobs/', payload);
       
-      console.log('✅ Job posting successful:', response.data);
+      console.log('✅ Job posting successful!');
+      console.log('📊 Response status:', response.status);
+      console.log('📊 Response data:', response.data);
       
-      // Show success message with approval info
-      const jobData = response.data.job || response.data;
-      const message = response.data.message || 'Job posted successfully!';
+      setDebugInfo(`✅ Success! Job created with ID: ${response.data.id}, Status: ${response.data.status}`);
       
-      alert(`${message}\n\nYour job posting has been submitted and will be reviewed by our admin team before being published. You'll receive a notification once it's approved.`);
+      // Check the response structure
+      const jobData = response.data;
       
-      onSuccess && onSuccess(jobData);
+      // Show detailed success message
+      const successMessage = `
+✅ Job Posted Successfully!
+
+🆔 Job ID: ${jobData.id}
+📝 Title: "${formData.title}"
+📊 Status: ${jobData.status || 'pending'} 
+✉️ Email: ${formData.company_email}
+📧 Verified: ${jobData.is_verified ? 'Yes' : 'Pending'}
+
+📋 Next Steps:
+• Your job is now in the admin review queue
+• Check the Job Administration panel at /job-admin
+• You'll be notified once it's approved
+• Approved jobs appear in the main job listings
+
+🔗 Admin Panel: ${window.location.origin}/job-admin
+      `.trim();
+      
+      alert(successMessage);
+      
+      // Log for debugging
+      console.log('🎯 Job should now appear in admin panel');
+      console.log('🔍 Check these details:');
+      console.log('   - Job ID:', jobData.id);
+      console.log('   - Status:', jobData.status);
+      console.log('   - Is Active:', jobData.is_active);
+      console.log('   - Is Verified:', jobData.is_verified);
+      
+      // Call success callback
+      if (onSuccess) {
+        onSuccess(jobData);
+      }
+      
+      // Close modal
       onClose();
       
     } catch (err) {
       console.error('❌ Error creating job:', err);
+      console.error('❌ Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        stack: err.stack
+      });
+      
+      setDebugInfo(`❌ ERROR: ${err.message} | Status: ${err.response?.status} | Data: ${JSON.stringify(err.response?.data)}`);
+      
+      let errorMessage = 'Failed to create job posting.';
       
       if (err.response?.data) {
         if (typeof err.response.data === 'object' && err.response.data.error) {
+          errorMessage = err.response.data.error;
           setErrors({ general: err.response.data.error });
         } else if (typeof err.response.data === 'object') {
-          // Handle field-specific errors
+          // Handle field-specific errors from Django
           setErrors(err.response.data);
+          errorMessage = 'Please check the form for errors.';
         } else {
+          errorMessage = 'Server error occurred.';
           setErrors({ general: 'Failed to create job posting. Please check your information and try again.' });
         }
+      } else if (err.message.includes('Network Error')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+        setErrors({ general: 'Network error. Please check your internet connection and try again.' });
       } else {
+        errorMessage = err.message;
         setErrors({ general: 'Failed to create job posting. Please check your internet connection and try again.' });
       }
+      
+      // Show error alert
+      alert(`❌ Submission Failed!\n\n${errorMessage}\n\nCheck the console for more details.`);
+      
     } finally {
       setLoading(false);
     }
@@ -343,7 +451,7 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                   Post a New Job
                 </h3>
                 <p className="mt-1 text-blue-100 text-sm sm:text-base">
-                  Find the perfect candidate for your team
+                  Submit your job for admin review and approval
                 </p>
               </div>
               <button
@@ -394,10 +502,26 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                 })}
               </div>
             </div>
+
+            {/* Debug Info */}
+            {debugInfo && (
+              <div className="mt-2 p-2 bg-white/10 rounded text-xs font-mono text-white/80 max-h-20 overflow-y-auto">
+                {debugInfo}
+              </div>
+            )}
           </div>
 
           {/* Form Content */}
-          <form onSubmit={handleSubmit} className="px-4 sm:px-6 py-4 sm:py-6">
+          {!dataLoaded ? (
+            <div className="px-4 sm:px-6 py-8 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-300 border-t-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading form data...</p>
+                <p className="text-sm text-gray-500 mt-1">{debugInfo}</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="px-4 sm:px-6 py-4 sm:py-6">
             <div className="max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
               
               {/* Step 1: Basic Information */}
@@ -408,11 +532,108 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                     <h4 className="text-base sm:text-lg font-semibold text-gray-900">Job Information</h4>
                   </div>
 
+                  {/* Form Errors Display */}
+                  {Object.keys(errors).length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <h4 className="text-red-900 font-medium text-sm mb-2">Please fix the following errors:</h4>
+                      <ul className="text-red-700 text-sm space-y-1">
+                        {Object.entries(errors).map(([field, message]) => (
+                          <li key={field} className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <span><strong>{field}:</strong> {message}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {errors.general && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+                      <AlertCircle className="w-4 h-4 inline mr-2" />
                       {errors.general}
                     </div>
                   )}
+
+                  {/* API Test Section */}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <h4 className="text-yellow-900 font-medium text-sm mb-2">API Connection Test</h4>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            console.log('🧪 Testing job types API...');
+                            const response = await api.get('/jobs/types/');
+                            console.log('API Response:', response);
+                            alert(`✅ API Test Success!\n\nStatus: ${response.status}\nData: ${JSON.stringify(response.data, null, 2)}`);
+                          } catch (error) {
+                            console.error('API Test Failed:', error);
+                            alert(`❌ API Test Failed!\n\nError: ${error.message}\nStatus: ${error.response?.status}\nData: ${JSON.stringify(error.response?.data, null, 2)}`);
+                          }
+                        }}
+                        className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs hover:bg-yellow-200"
+                      >
+                        Test Job Types API
+                      </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log('🔄 Clearing all errors and resetting form...');
+                        setErrors({});
+                        setFormData({
+                          title: '',
+                          description: '',
+                          startup: '',
+                          location: '',
+                          job_type: '',
+                          salary_range: '',
+                          is_remote: false,
+                          is_urgent: false,
+                          experience_level: 'mid',
+                          requirements: '',
+                          benefits: '',
+                          application_deadline: '',
+                          expires_at: '',
+                          company_email: '',
+                          skills: []
+                        });
+                        setCurrentStep(1);
+                        alert('Form reset! All errors cleared.');
+                      }}
+                      className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200"
+                    >
+                      Reset Form
+                    </button>
+                    </div>
+                    <p className="text-xs text-yellow-700">
+                      If the dropdown is empty, use these buttons to test the API connection.
+                    </p>
+                  </div>
+
+                  {/* Debug Information */}
+                  {debugInfo && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+                      <h4 className="text-gray-900 font-medium text-sm mb-1">Debug Info:</h4>
+                      <p className="text-xs font-mono text-gray-700">{debugInfo}</p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Job Types Available: {Array.isArray(jobTypes) ? jobTypes.length : 'Not loaded'} | 
+                        Startups Available: {Array.isArray(startups) ? startups.length : 'Not loaded'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Real API Notice */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <CheckCircle className="text-green-500 mt-1 mr-3 flex-shrink-0" size={20} />
+                      <div>
+                        <h4 className="text-green-900 font-medium text-sm sm:text-base">Connected to Real API</h4>
+                        <p className="text-green-700 text-xs sm:text-sm mt-1">
+                          This form is now connected to your Django backend. Jobs will be submitted to the admin panel for review.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Job Title */}
                   <div>
@@ -452,7 +673,7 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                         }`}
                       >
                         <option value="">Select startup (optional)</option>
-                        {startups.filter(s => s.is_approved !== false).map(startup => (
+                        {Array.isArray(startups) && startups.filter(s => s.is_approved !== false).map(startup => (
                           <option key={startup.id} value={startup.id}>
                             {startup.name}
                           </option>
@@ -482,11 +703,15 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                         }`}
                       >
                         <option value="">Select job type</option>
-                        {jobTypes.map(type => (
-                          <option key={type.id} value={type.id}>
-                            {type.name}
-                          </option>
-                        ))}
+                        {Array.isArray(jobTypes) && jobTypes.length > 0 ? (
+                          jobTypes.map(type => (
+                            <option key={type.id} value={type.id}>
+                              {type.name}
+                            </option>
+                          ))
+                        ) : (
+                          <option disabled>Loading job types...</option>
+                        )}
                       </select>
                       {errors.job_type && (
                         <div className="mt-1 flex items-center text-sm text-red-600">
@@ -494,6 +719,9 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                           {errors.job_type}
                         </div>
                       )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        Available options: {Array.isArray(jobTypes) ? jobTypes.length : 0} job types
+                      </p>
                     </div>
                   </div>
 
@@ -558,7 +786,7 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                       </div>
                     )}
                     <p className="mt-1 text-xs text-gray-500">
-                      This email will be used for verification and applicant communication
+                      This email will be verified by admins and used for applicant communication
                     </p>
                   </div>
 
@@ -787,15 +1015,105 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                     <h4 className="text-base sm:text-lg font-semibold text-gray-900">Review & Submit</h4>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  {/* Submission Test Section */}
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <h4 className="text-red-900 font-medium text-sm mb-2">Submission Test</h4>
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          console.log('🧪 Testing job submission with clean data...');
+                          
+                          const testPayload = {
+                            title: 'Software Engineer Position',
+                            description: 'We are looking for a skilled software engineer to join our team. This is a great opportunity to work on exciting projects and grow your career. You will be responsible for developing web applications, working with databases, and collaborating with cross-functional teams.',
+                            location: 'San Francisco, CA',
+                            job_type: 1,
+                            company_email: 'hiring@testcompany.com',
+                            experience_level: 'mid',
+                            is_remote: false,
+                            is_urgent: false,
+                            salary_range: '$80,000 - $120,000',
+                            requirements: 'Bachelor degree in Computer Science, 3+ years experience',
+                            benefits: 'Health insurance, 401k, flexible hours',
+                            skills: [
+                              { skill: 'JavaScript', is_required: true, proficiency_level: 'intermediate' },
+                              { skill: 'React', is_required: true, proficiency_level: 'advanced' }
+                            ]
+                          };
+                          
+                          try {
+                            console.log('📤 Sending clean test payload:', testPayload);
+                            const response = await api.post('/jobs/', testPayload);
+                            console.log('✅ Test submission successful:', response.data);
+                            alert(`✅ Test Submission Success!\n\nJob ID: ${response.data.id}\nStatus: ${response.data.status}\nTitle: ${response.data.title}\n\nCheck the admin panel!`);
+                          } catch (error) {
+                            console.error('❌ Test submission failed:', error);
+                            console.error('❌ Error response:', error.response?.data);
+                            alert(`❌ Test Submission Failed!\n\nError: ${error.message}\nStatus: ${error.response?.status}\nResponse: ${JSON.stringify(error.response?.data, null, 2)}`);
+                          }
+                        }}
+                        className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs hover:bg-red-200"
+                      >
+                        Test Submit Job
+                      </button>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          console.log('🔍 Current form state:');
+                          console.log('Form Data:', formData);
+                          console.log('Errors:', errors);
+                          console.log('Loading:', loading);
+                          console.log('Current Step:', currentStep);
+                          console.log('Data Loaded:', dataLoaded);
+                          console.log('Job Types:', jobTypes);
+                          
+                          // Validate current step
+                          const isValid = validateStep(currentStep);
+                          console.log('Current step valid:', isValid);
+                          
+                          alert(`Form State Debug:
+                          
+Step: ${currentStep}/3
+Loading: ${loading}
+Valid: ${isValid}
+
+Form Data:
+• Title: "${formData.title}" (${formData.title.length} chars)
+• Description: ${formData.description.length} chars
+• Location: "${formData.location}"
+• Job Type: ${formData.job_type} (${jobTypes.find(t => t.id.toString() === formData.job_type.toString())?.name || 'Invalid'})
+• Email: "${formData.company_email}"
+
+Errors: ${Object.keys(errors).length}
+${Object.entries(errors).map(([k,v]) => `• ${k}: ${v}`).join('\n')}
+
+Check console for full details.`);
+                        }}
+                        className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-xs hover:bg-gray-200"
+                      >
+                        Debug Form State
+                      </button>
+                    </div>
+                    <p className="text-xs text-red-700">
+                      Use these buttons to test submission and debug form state.
+                    </p>
+                  </div>
+
+                  {/* API Connection Status */}
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-start">
-                      <AlertCircle className="text-blue-500 mt-1 mr-3 flex-shrink-0" size={20} />
+                      <CheckCircle className="text-green-500 mt-1 mr-3 flex-shrink-0" size={20} />
                       <div>
-                        <h4 className="text-blue-900 font-medium text-sm sm:text-base">Job Approval Process</h4>
-                        <p className="text-blue-700 text-xs sm:text-sm mt-1">
-                          Your job posting will be reviewed by our admin team before being published. 
-                          You'll receive a notification once it's approved and goes live.
+                        <h4 className="text-green-900 font-medium text-sm sm:text-base">Ready to Submit to Admin Panel</h4>
+                        <p className="text-green-700 text-xs sm:text-sm mt-1">
+                          Your job will be sent directly to the Job Administration panel where admins can review and approve it.
+                          Once approved, it will appear in the main job listings.
                         </p>
+                        <div className="mt-2 text-xs text-green-600">
+                          ✓ Real API connection • ✓ Admin panel integration • ✓ Email verification workflow
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -808,14 +1126,14 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                       <div>
                         <h6 className="font-medium text-gray-900 text-lg">{formData.title}</h6>
                         <p className="text-sm text-gray-600">
-                          {formData.startup ? startups.find(s => s.id == formData.startup)?.name : 'Independent Job Posting'} • {formData.location}
+                          {formData.startup && Array.isArray(startups) ? startups.find(s => s.id == formData.startup)?.name || 'Independent Job Posting' : 'Independent Job Posting'} • {formData.location}
                           {formData.is_remote && " • Remote"}
                         </p>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          {jobTypes.find(t => t.id == formData.job_type)?.name}
+                          {Array.isArray(jobTypes) && jobTypes.find(t => t.id == formData.job_type)?.name || 'Job Type'}
                         </span>
                         <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
                           {formData.experience_level.charAt(0).toUpperCase() + formData.experience_level.slice(1)} Level
@@ -830,6 +1148,9 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                             {formData.salary_range}
                           </span>
                         )}
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                          Will be Pending Review
+                        </span>
                       </div>
 
                       <div>
@@ -870,6 +1191,18 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                       )}
 
+                      {/* Contact Information */}
+                      <div>
+                        <h6 className="font-medium text-gray-900 mb-2">Contact Information</h6>
+                        <div className="text-sm text-gray-600">
+                          <p className="flex items-center gap-2">
+                            <Mail size={14} />
+                            {formData.company_email}
+                            <span className="text-xs text-orange-600">(Will be verified by admin)</span>
+                          </p>
+                        </div>
+                      </div>
+
                       {(formData.application_deadline || formData.expires_at) && (
                         <div>
                           <h6 className="font-medium text-gray-900 mb-2">Important Dates</h6>
@@ -883,6 +1216,29 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Submission Information */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h6 className="font-medium text-blue-900 mb-3">What happens after submission:</h6>
+                    <div className="space-y-2 text-sm text-blue-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                        <span>Job is submitted with status "pending"</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                        <span>Appears in Admin Panel (/job-admin) for review</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                        <span>Admin verifies email and approves/rejects</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-bold">4</div>
+                        <span>If approved, job becomes visible to job seekers</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -923,18 +1279,22 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
                 ) : (
                   <button
                     type="submit"
+                    onClick={(e) => {
+                      console.log('🖱️ Submit button clicked!');
+                      handleSubmit(e);
+                    }}
                     disabled={loading}
                     className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        <span>Posting Job...</span>
+                        <span>Submitting to Admin Panel...</span>
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4" />
-                        <span>Post Job</span>
+                        <span>Submit for Admin Review</span>
                       </>
                     )}
                   </button>
@@ -942,6 +1302,7 @@ const JobUploadForm = ({ isOpen, onClose, onSuccess }) => {
               </div>
             </div>
           </form>
+          )}
         </div>
       </div>
 
