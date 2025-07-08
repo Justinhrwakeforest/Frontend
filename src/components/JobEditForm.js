@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, X, Plus, AlertCircle, CheckCircle, Clock, Building } from 'lucide-react';
+import { ArrowLeft, Save, X, Plus, AlertCircle, CheckCircle, Clock, Building, Calendar, Mail } from 'lucide-react';
 
 const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
   // Mock navigation functions
@@ -53,7 +53,8 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
               { skill: 'AWS', is_required: false, proficiency_level: 'intermediate' }
             ],
             posted_by_username: 'testuser',
-            rejection_reason: ''
+            rejection_reason: '',
+            is_verified: true
           }
         };
       }
@@ -66,7 +67,7 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (url.includes('/jobs/')) {
-        // Simulate successful job update
+        // Simulate successful job update with approval workflow
         const isAdminEdit = user.is_staff || user.is_superuser;
         const requiresApproval = !isAdminEdit;
         
@@ -76,9 +77,14 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
               id: jobId,
               ...data,
               status: requiresApproval ? 'pending' : 'active',
-              updated_at: new Date().toISOString()
+              is_active: !requiresApproval,
+              updated_at: new Date().toISOString(),
+              approved_by: isAdminEdit ? user.username : null,
+              approved_at: isAdminEdit ? new Date().toISOString() : null
             },
-            message: 'Job updated successfully!',
+            message: requiresApproval 
+              ? 'Job updated successfully and submitted for re-approval. Your changes will be reviewed by our admin team.'
+              : 'Job updated successfully!',
             requires_approval: requiresApproval,
             new_status: requiresApproval ? 'pending' : 'active'
           }
@@ -115,6 +121,7 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [skillInput, setSkillInput] = useState('');
+  const [showApprovalInfo, setShowApprovalInfo] = useState(false);
 
   useEffect(() => {
     if (jobId) {
@@ -156,6 +163,11 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
         expires_at: jobData.expires_at ? jobData.expires_at.split('T')[0] : '',
         skills: jobData.skills || []
       });
+      
+      // Show approval info if this is an active job being edited by non-admin
+      if (jobData.status === 'active' && !user.is_staff && !user.is_superuser) {
+        setShowApprovalInfo(true);
+      }
       
     } catch (error) {
       console.error('❌ Error fetching job:', error);
@@ -273,12 +285,16 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
       
       // Show appropriate message based on approval status
       if (response.data.requires_approval) {
-        alert('Job updated successfully and submitted for re-approval. Your changes will be reviewed by our admin team.');
+        alert(`✅ ${response.data.message}\n\n📋 What happens next:\n• Your changes are now in the admin review queue\n• The job status has been changed to "Pending Review"\n• You'll be notified once the changes are approved\n• The job will be republished after approval`);
       } else {
-        alert('Job updated successfully!');
+        alert(`✅ ${response.data.message}`);
       }
       
-      navigate(`/jobs/${jobId}`);
+      if (onSuccess) {
+        onSuccess(updatedJob);
+      } else {
+        navigate(`/jobs/${jobId}`);
+      }
       
     } catch (error) {
       console.error('❌ Error updating job:', error);
@@ -367,6 +383,12 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
                   {job.status_display || job.status}
                 </span>
               )}
+              {job.is_verified && (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <CheckCircle size={12} className="inline mr-1" />
+                  Email Verified
+                </span>
+              )}
             </div>
           </div>
 
@@ -374,6 +396,25 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
             {errors.general && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
                 {errors.general}
+              </div>
+            )}
+
+            {/* Approval Information Notice */}
+            {showApprovalInfo && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start">
+                  <AlertCircle className="text-blue-500 mt-1 mr-3 flex-shrink-0" size={20} />
+                  <div>
+                    <h4 className="text-blue-900 font-medium text-sm sm:text-base">Edit Approval Required</h4>
+                    <p className="text-blue-700 text-xs sm:text-sm mt-1">
+                      Since this is an active job posting, any changes you make will require admin approval. 
+                      Your job will be temporarily moved to "Pending Review" status until the changes are approved.
+                    </p>
+                    <div className="mt-2 text-xs text-blue-600">
+                      ✓ Changes submitted for review • ✓ Admin notification sent • ✓ Job republished after approval
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -635,7 +676,52 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
                 </div>
               </div>
 
-              {/* Status Notice */}
+              {/* Status Information */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <Mail className="w-5 h-5 mr-2 text-blue-600" />
+                  Current Status
+                </h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">Job Status</h4>
+                    <div className="flex items-center gap-2">
+                      {job.status === 'active' && <CheckCircle size={16} className="text-green-500" />}
+                      {job.status === 'pending' && <Clock size={16} className="text-yellow-500" />}
+                      {job.status === 'rejected' && <AlertCircle size={16} className="text-red-500" />}
+                      <span className="text-sm font-medium">{job.status_display}</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {job.status === 'active' && 'Your job is live and accepting applications'}
+                      {job.status === 'pending' && 'Your job is being reviewed by our admin team'}
+                      {job.status === 'rejected' && 'Your job was rejected and needs updates'}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">Email Verification</h4>
+                    <div className="flex items-center gap-2">
+                      {job.is_verified ? (
+                        <CheckCircle size={16} className="text-green-500" />
+                      ) : (
+                        <AlertCircle size={16} className="text-orange-500" />
+                      )}
+                      <span className="text-sm font-medium">
+                        {job.is_verified ? 'Verified' : 'Pending Verification'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {job.is_verified 
+                        ? 'Your company email has been verified' 
+                        : 'Email verification is required for approval'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Notices */}
               {job.status === 'pending' && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex items-start">
@@ -657,20 +743,20 @@ const JobEditForm = ({ jobId = 1, onClose, onSuccess }) => {
                     <div>
                       <h4 className="text-red-900 font-medium">Job Rejected</h4>
                       <p className="text-red-700 text-sm mt-1">{job.rejection_reason}</p>
-                      <p className="text-red-600 text-xs mt-2">Make the necessary changes and resubmit for review.</p>
+                      <p className="text-red-600 text-xs mt-2">Make the necessary changes and save to resubmit for review.</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Edit Notice */}
+              {/* Final Edit Notice */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start">
                   <AlertCircle className="text-blue-500 mt-1 mr-3 flex-shrink-0" size={20} />
                   <div>
-                    <h4 className="text-blue-900 font-medium text-sm sm:text-base">Edit Information</h4>
+                    <h4 className="text-blue-900 font-medium text-sm sm:text-base">Save Changes</h4>
                     <p className="text-blue-700 text-xs sm:text-sm mt-1">
-                      {job.status === 'active' ? 
+                      {job.status === 'active' && !user.is_staff && !user.is_superuser ? 
                         'Editing an active job will require re-approval. Your job will be temporarily hidden while under review.' :
                         'Changes to your job posting will be submitted for review. Make sure all information is accurate before saving.'
                       }
