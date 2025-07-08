@@ -1,14 +1,15 @@
-// src/components/JobDetailPage.js - Enhanced Mobile-First Responsive Design
+// src/components/JobDetailPage.js - Enhanced with fully visible details
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { 
   Building, MapPin, DollarSign, Clock, Users, Globe, Star, 
-  ChevronLeft, ChevronDown, ChevronUp, Briefcase, CheckCircle,
-  AlertCircle, Edit, Trash2, Share2, Bookmark, Eye, Menu,
-  X, ExternalLink
+  ChevronLeft, Briefcase, CheckCircle, AlertCircle, Edit, 
+  Trash2, Share2, Bookmark, Eye, Menu, X, ExternalLink, 
+  Calendar, Mail, User, Award, Heart, TrendingUp
 } from 'lucide-react';
 import api from '../services/api';
+import JobApplicationModal from './JobApplicationModal';
 
 const JobDetailPage = () => {
   const { id } = useParams();
@@ -17,16 +18,8 @@ const JobDetailPage = () => {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedSections, setExpandedSections] = useState({
-    description: true,
-    requirements: false,
-    benefits: false,
-    company: false,
-    similarJobs: false
-  });
   const [applying, setApplying] = useState(false);
-  const [applicationText, setApplicationText] = useState('');
-  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
 
@@ -44,40 +37,6 @@ const JobDetailPage = () => {
       setError('Failed to load job details');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const handleApply = async () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-
-    setApplying(true);
-    try {
-      const response = await api.post(`/jobs/${id}/apply/`, {
-        cover_letter: applicationText
-      });
-
-      if (response.status === 201) {
-        alert('Application submitted successfully!');
-        setShowApplicationForm(false);
-        setApplicationText('');
-        fetchJobDetails();
-      }
-    } catch (error) {
-      console.error('Error applying:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to submit application';
-      alert(errorMessage);
-    } finally {
-      setApplying(false);
     }
   };
 
@@ -125,28 +84,24 @@ const JobDetailPage = () => {
     return (job.posted_by_username === user.username) || user.is_staff || user.is_superuser;
   };
 
-  const ExpandableCard = ({ title, icon: Icon, children, section, defaultExpanded = false }) => {
-    const isExpanded = expandedSections[section];
-    
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, text: 'Under Review' },
+      active: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Active' },
+      rejected: { color: 'bg-red-100 text-red-800', icon: AlertCircle, text: 'Rejected' },
+      draft: { color: 'bg-gray-100 text-gray-800', icon: Edit, text: 'Draft' },
+      paused: { color: 'bg-blue-100 text-blue-800', icon: Clock, text: 'Paused' },
+      closed: { color: 'bg-gray-100 text-gray-800', icon: X, text: 'Closed' }
+    };
+
+    const config = statusConfig[status] || statusConfig.draft;
+    const IconComponent = config.icon;
+
     return (
-      <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
-        <button
-          onClick={() => toggleSection(section)}
-          className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Icon className="text-blue-600 flex-shrink-0" size={18} />
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 text-left">{title}</h3>
-          </div>
-          {isExpanded ? <ChevronUp size={18} className="flex-shrink-0" /> : <ChevronDown size={18} className="flex-shrink-0" />}
-        </button>
-        
-        {isExpanded && (
-          <div className="px-4 sm:px-6 pb-4 sm:pb-6 border-t border-gray-100">
-            {children}
-          </div>
-        )}
-      </div>
+      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
+        <IconComponent size={14} />
+        {config.text}
+      </span>
     );
   };
 
@@ -207,7 +162,10 @@ const JobDetailPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading job details...</p>
+        </div>
       </div>
     );
   }
@@ -216,6 +174,7 @@ const JobDetailPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Job Not Found</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
@@ -243,14 +202,17 @@ const JobDetailPage = () => {
           </button>
 
           <div className="flex flex-col space-y-4">
-            {/* Job Info */}
+            {/* Job Header */}
             <div className="flex items-start gap-3 sm:gap-4">
-              <div className="text-2xl sm:text-4xl flex-shrink-0">{job.startup_detail?.logo || '🏢'}</div>
+              <div className="text-2xl sm:text-4xl flex-shrink-0">
+                {job.startup_detail?.logo || '🏢'}
+              </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 break-words">
                   {job.title}
                 </h1>
-                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm sm:text-base text-gray-600">
+                
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm sm:text-base text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
                     <Building size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
                     <span className="truncate">{job.startup_name}</span>
@@ -272,28 +234,46 @@ const JobDetailPage = () => {
                   )}
                 </div>
                 
-                {/* Status badges */}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium">
+                {/* Status and Job Type badges */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {getStatusBadge(job.status)}
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                     {job.job_type_name}
                   </span>
-                  <span className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs sm:text-sm font-medium">
+                  <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
                     {job.experience_level_display}
                   </span>
                   {job.is_urgent && (
-                    <span className="px-2 sm:px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs sm:text-sm font-medium">
+                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                      <AlertCircle size={12} className="inline mr-1" />
                       Urgent
                     </span>
                   )}
-                  {job.status === 'pending' && (
-                    <span className="px-2 sm:px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs sm:text-sm font-medium">
-                      Under Review
+                  {!job.is_verified && (
+                    <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+                      <AlertCircle size={12} className="inline mr-1" />
+                      Email Unverified
                     </span>
                   )}
-                  {job.status === 'rejected' && (
-                    <span className="px-2 sm:px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs sm:text-sm font-medium">
-                      Rejected
-                    </span>
+                </div>
+
+                {/* Quick Stats */}
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Eye size={14} />
+                    <span>{job.view_count || 0} views</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <User size={14} />
+                    <span>{job.application_count || 0} applications</span>
+                  </div>
+                  {job.company_email && (
+                    <div className="flex items-center gap-1">
+                      <Mail size={14} />
+                      <span className={job.is_verified ? 'text-green-600' : 'text-orange-600'}>
+                        Email {job.is_verified ? 'verified' : 'pending verification'}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -340,8 +320,8 @@ const JobDetailPage = () => {
               
               {job.status === 'active' && !job.has_applied ? (
                 <button
-                  onClick={() => setShowApplicationForm(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  onClick={() => setShowApplicationModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-medium"
                 >
                   Apply Now
                 </button>
@@ -375,8 +355,8 @@ const JobDetailPage = () => {
               
               {job.status === 'active' && !job.has_applied ? (
                 <button
-                  onClick={() => setShowApplicationForm(true)}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  onClick={() => setShowApplicationModal(true)}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-medium"
                 >
                   Apply Now
                 </button>
@@ -405,16 +385,16 @@ const JobDetailPage = () => {
       <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Job Description */}
-            <ExpandableCard
-              title="Job Description"
-              icon={Briefcase}
-              section="description"
-            >
-              <div className="mt-4">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Job Description - Always Visible */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Briefcase className="text-blue-600" size={20} />
+                <h3 className="text-lg font-semibold text-gray-900">Job Description</h3>
+              </div>
+              <div className="prose prose-gray max-w-none">
                 <div 
-                  className="text-gray-700 text-sm sm:text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap"
+                  className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words"
                   style={{ 
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
@@ -424,56 +404,77 @@ const JobDetailPage = () => {
                   {job.description}
                 </div>
               </div>
-            </ExpandableCard>
+            </div>
 
-            {/* Requirements */}
-            {(job.requirements_list && job.requirements_list.length > 0) && (
-              <ExpandableCard
-                title="Requirements"
-                icon={CheckCircle}
-                section="requirements"
-              >
-                <ul className="space-y-2 mt-4">
-                  {job.requirements_list.map((req, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="break-words overflow-wrap-anywhere text-sm sm:text-base">{req}</span>
-                    </li>
-                  ))}
-                </ul>
-              </ExpandableCard>
+            {/* Requirements - Always Visible */}
+            {(job.requirements || (job.requirements_list && job.requirements_list.length > 0)) && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <CheckCircle className="text-green-600" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-900">Requirements</h3>
+                </div>
+                {job.requirements && (
+                  <div className="prose prose-gray max-w-none mb-4">
+                    <div className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                      {job.requirements}
+                    </div>
+                  </div>
+                )}
+                {job.requirements_list && job.requirements_list.length > 0 && (
+                  <ul className="space-y-2">
+                    {job.requirements_list.map((req, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="break-words overflow-wrap-anywhere text-sm sm:text-base">{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
 
-            {/* Benefits */}
-            {(job.benefits_list && job.benefits_list.length > 0) && (
-              <ExpandableCard
-                title="Benefits & Perks"
-                icon={Star}
-                section="benefits"
-              >
-                <ul className="space-y-2 mt-4">
-                  {job.benefits_list.map((benefit, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <span className="break-words overflow-wrap-anywhere text-sm sm:text-base">{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
-              </ExpandableCard>
+            {/* Benefits - Always Visible */}
+            {(job.benefits || (job.benefits_list && job.benefits_list.length > 0)) && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Star className="text-yellow-500" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-900">Benefits & Perks</h3>
+                </div>
+                {job.benefits && (
+                  <div className="prose prose-gray max-w-none mb-4">
+                    <div className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                      {job.benefits}
+                    </div>
+                  </div>
+                )}
+                {job.benefits_list && job.benefits_list.length > 0 && (
+                  <ul className="space-y-2">
+                    {job.benefits_list.map((benefit, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                        <span className="break-words overflow-wrap-anywhere text-sm sm:text-base">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
 
-            {/* Skills */}
+            {/* Skills - Always Visible */}
             {job.skills && job.skills.length > 0 && (
-              <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Required Skills</h3>
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Award className="text-purple-600" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-900">Required Skills</h3>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {job.skills.map((skill, index) => (
                     <span
                       key={index}
-                      className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium break-words ${
+                      className={`px-3 py-2 rounded-lg text-sm font-medium break-words ${
                         skill.is_required 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                          : 'bg-gray-100 text-gray-800 border border-gray-200'
                       }`}
                     >
                       {skill.skill}
@@ -482,22 +483,98 @@ const JobDetailPage = () => {
                           ({skill.proficiency_level})
                         </span>
                       )}
+                      {skill.is_required && (
+                        <span className="ml-1 text-xs font-bold">*</span>
+                      )}
                     </span>
                   ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">* Required skills</p>
+              </div>
+            )}
+
+            {/* Important Dates - Always Visible */}
+            {(job.application_deadline || job.expires_at) && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Calendar className="text-orange-600" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-900">Important Dates</h3>
+                </div>
+                <div className="space-y-3">
+                  {job.application_deadline && (
+                    <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+                      <Calendar size={16} className="text-orange-600" />
+                      <div>
+                        <p className="font-medium text-orange-900">Application Deadline</p>
+                        <p className="text-sm text-orange-700">
+                          {new Date(job.application_deadline).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {job.expires_at && (
+                    <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                      <Clock size={16} className="text-red-600" />
+                      <div>
+                        <p className="font-medium text-red-900">Position Expires</p>
+                        <p className="text-sm text-red-700">
+                          {new Date(job.expires_at).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Status-specific Messages */}
+            {job.status === 'pending' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <Clock className="text-yellow-500 mt-1 mr-3" size={20} />
+                  <div>
+                    <h4 className="text-yellow-900 font-medium">Job Under Review</h4>
+                    <p className="text-yellow-700 text-sm mt-1">
+                      This job posting is currently being reviewed by our admin team and will be published once approved.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {job.status === 'rejected' && job.rejection_reason && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertCircle className="text-red-500 mt-1 mr-3 flex-shrink-0" size={20} />
+                  <div>
+                    <h4 className="text-red-900 font-medium">Job Rejected</h4>
+                    <p className="text-red-700 text-sm mt-1">{job.rejection_reason}</p>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Company Info */}
-            <ExpandableCard
-              title="About the Company"
-              icon={Building}
-              section="company"
-            >
-              <div className="mt-4 space-y-4">
+          <div className="space-y-6">
+            {/* Company Info - Always Visible */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Building className="text-blue-600" size={20} />
+                <h3 className="text-lg font-semibold text-gray-900">About the Company</h3>
+              </div>
+              
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="text-xl sm:text-2xl flex-shrink-0">{job.startup_detail?.logo || '🏢'}</div>
                   <div className="min-w-0">
@@ -506,27 +583,37 @@ const JobDetailPage = () => {
                   </div>
                 </div>
                 
-                <div className="text-gray-700 break-words overflow-wrap-anywhere text-sm sm:text-base">
-                  {job.startup_detail?.description}
-                </div>
+                {job.startup_detail?.description && (
+                  <div className="text-gray-700 break-words overflow-wrap-anywhere text-sm sm:text-base">
+                    {job.startup_detail.description}
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
-                  <div>
-                    <span className="text-gray-500">Industry:</span>
-                    <p className="font-medium break-words">{job.startup_detail?.industry_name}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Size:</span>
-                    <p className="font-medium">{job.startup_employee_count} employees</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Founded:</span>
-                    <p className="font-medium">{job.startup_detail?.founded_year}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Location:</span>
-                    <p className="font-medium break-words">{job.startup_detail?.location}</p>
-                  </div>
+                  {job.startup_detail?.industry_name && (
+                    <div>
+                      <span className="text-gray-500">Industry:</span>
+                      <p className="font-medium break-words">{job.startup_detail.industry_name}</p>
+                    </div>
+                  )}
+                  {job.startup_employee_count && (
+                    <div>
+                      <span className="text-gray-500">Size:</span>
+                      <p className="font-medium">{job.startup_employee_count} employees</p>
+                    </div>
+                  )}
+                  {job.startup_detail?.founded_year && (
+                    <div>
+                      <span className="text-gray-500">Founded:</span>
+                      <p className="font-medium">{job.startup_detail.founded_year}</p>
+                    </div>
+                  )}
+                  {job.startup_detail?.location && (
+                    <div>
+                      <span className="text-gray-500">Location:</span>
+                      <p className="font-medium break-words">{job.startup_detail.location}</p>
+                    </div>
+                  )}
                 </div>
 
                 {job.startup_detail?.website && (
@@ -542,26 +629,41 @@ const JobDetailPage = () => {
                   </a>
                 )}
               </div>
-            </ExpandableCard>
+            </div>
 
-            {/* Job Stats */}
-            <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Job Stats</h3>
+            {/* Job Stats - Always Visible */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <TrendingUp className="text-green-600" size={20} />
+                <h3 className="text-lg font-semibold text-gray-900">Job Stats</h3>
+              </div>
               <div className="space-y-3 text-sm sm:text-base">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Views:</span>
-                  <span className="font-medium">{job.view_count}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 flex items-center gap-2">
+                    <Eye size={14} />
+                    Views:
+                  </span>
+                  <span className="font-medium">{job.view_count || 0}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Applications:</span>
-                  <span className="font-medium">{job.application_count}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 flex items-center gap-2">
+                    <User size={14} />
+                    Applications:
+                  </span>
+                  <span className="font-medium">{job.application_count || 0}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Posted:</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 flex items-center gap-2">
+                    <Calendar size={14} />
+                    Posted:
+                  </span>
                   <span className="font-medium">{job.posted_ago}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status:</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 flex items-center gap-2">
+                    <CheckCircle size={14} />
+                    Status:
+                  </span>
                   <span className={`font-medium ${
                     job.status === 'active' ? 'text-green-600' : 
                     job.status === 'pending' ? 'text-yellow-600' : 
@@ -570,17 +672,94 @@ const JobDetailPage = () => {
                     {job.status_display}
                   </span>
                 </div>
+                {job.company_email && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 flex items-center gap-2">
+                      <Mail size={14} />
+                      Email:
+                    </span>
+                    <span className={`font-medium text-xs ${job.is_verified ? 'text-green-600' : 'text-orange-600'}`}>
+                      {job.is_verified ? 'Verified' : 'Pending'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Similar Jobs */}
+            {/* Contact Information - Always Visible */}
+            {job.company_email && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Mail className="text-purple-600" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Mail size={16} className="text-gray-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">Company Email</p>
+                      <p className="text-sm text-gray-600 break-all">{job.company_email}</p>
+                      <p className={`text-xs mt-1 ${job.is_verified ? 'text-green-600' : 'text-orange-600'}`}>
+                        {job.is_verified ? '✓ Verified with company domain' : '⚠ Pending verification'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Job Type & Experience - Always Visible */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Briefcase className="text-indigo-600" size={20} />
+                <h3 className="text-lg font-semibold text-gray-900">Job Details</h3>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-gray-500 text-sm">Job Type</span>
+                  <p className="font-medium">{job.job_type_name}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-sm">Experience Level</span>
+                  <p className="font-medium">{job.experience_level_display}</p>
+                </div>
+                {job.salary_range && (
+                  <div>
+                    <span className="text-gray-500 text-sm">Salary Range</span>
+                    <p className="font-medium">{job.salary_range}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-gray-500 text-sm">Work Options</span>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {job.is_remote && (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        Remote OK
+                      </span>
+                    )}
+                    {job.is_urgent && (
+                      <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                        Urgent Hiring
+                      </span>
+                    )}
+                    {!job.is_remote && !job.is_urgent && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                        On-site
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Similar Jobs - Always Visible */}
             {job.similar_jobs && job.similar_jobs.length > 0 && (
-              <ExpandableCard
-                title="Similar Jobs"
-                icon={Briefcase}
-                section="similarJobs"
-              >
-                <div className="mt-4 space-y-3">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Heart className="text-pink-600" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-900">Similar Jobs</h3>
+                </div>
+                <div className="space-y-3">
                   {job.similar_jobs.map((similarJob) => (
                     <div
                       key={similarJob.id}
@@ -589,11 +768,16 @@ const JobDetailPage = () => {
                     >
                       <h4 className="font-medium text-gray-900 break-words text-sm sm:text-base">{similarJob.title}</h4>
                       <p className="text-xs sm:text-sm text-gray-600 break-words">{similarJob.startup_name}</p>
-                      <p className="text-xs sm:text-sm text-gray-500 break-words">{similarJob.location}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-500 break-words">{similarJob.location}</p>
+                        {similarJob.is_remote && (
+                          <span className="text-xs text-green-600">• Remote</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </ExpandableCard>
+              </div>
             )}
           </div>
         </div>
@@ -602,45 +786,17 @@ const JobDetailPage = () => {
       {/* Mobile Action Sheet */}
       <MobileActionSheet />
 
-      {/* Application Modal */}
-      {showApplicationForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Apply to {job.title}</h3>
-            <p className="text-gray-600 mb-4 text-sm sm:text-base">
-              Write a brief cover letter explaining why you're interested in this position.
-            </p>
-            <textarea
-              value={applicationText}
-              onChange={(e) => setApplicationText(e.target.value)}
-              rows={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-              placeholder="Dear Hiring Manager,&#10;&#10;I am excited to apply for this position because..."
-            />
-            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowApplicationForm(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 order-2 sm:order-1"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApply}
-                disabled={applying || !applicationText.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 order-1 sm:order-2"
-              >
-                {applying ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  'Submit Application'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Job Application Modal */}
+      {showApplicationModal && (
+        <JobApplicationModal
+          isOpen={showApplicationModal}
+          onClose={() => setShowApplicationModal(false)}
+          job={job}
+          onApplicationSubmitted={() => {
+            setShowApplicationModal(false);
+            fetchJobDetails(); // Refresh job details
+          }}
+        />
       )}
     </div>
   );
