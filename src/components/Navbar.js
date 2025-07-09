@@ -1,4 +1,4 @@
-// src/components/Navbar.js - Fixed Responsive Navbar with Complete Menu Items
+// src/components/Navbar.js - Enhanced Original Design with Working Search
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -9,7 +9,8 @@ import {
   Menu, X, ChevronDown, Settings, HelpCircle,
   Star, Bookmark, Activity, TrendingUp, Bell,
   MessageCircle, Award, Shield, CreditCard,
-  Link as LinkIcon
+  Link as LinkIcon, Clock, Zap, Coffee, Code,
+  Heart, Users, Calendar, Target, Rocket
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -19,14 +20,17 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [quickSearchQuery, setQuickSearchQuery] = useState('');
-  const [quickSearchResults, setQuickSearchResults] = useState([]);
+  const [quickSearchResults, setQuickSearchResults] = useState({ startups: [], jobs: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [userStats, setUserStats] = useState(null);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   
   const searchRef = useRef(null);
   const dropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
+  const searchDebounceRef = useRef(null);
 
   const navItems = [
     { 
@@ -58,11 +62,20 @@ const Navbar = () => {
     { label: 'Help', icon: HelpCircle, path: '/help' },
   ];
 
+  // Mock search suggestions
+  const trendingSearches = [
+    'AI startups',
+    'Remote jobs',
+    'Series A funding',
+    'Frontend developer',
+    'FinTech companies',
+    'Product manager roles'
+  ];
+
   // Add admin menu items dynamically for admin users
   const getMenuItems = () => {
     const items = [...profileMenuItems];
     
-    // Insert admin links after "Profile" (index 1)
     if (user?.is_staff || user?.is_superuser) {
       items.splice(1, 0, { 
         label: 'Admin Panel', 
@@ -82,26 +95,54 @@ const Navbar = () => {
     return items;
   };
 
-  // Load user stats on mount
+  // Load user stats and recent searches on mount
   useEffect(() => {
     if (user) {
       loadUserStats();
     }
+    loadRecentSearches();
   }, [user]);
 
-  // Quick search functionality
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (quickSearchQuery.trim().length > 2) {
-        performQuickSearch(quickSearchQuery);
-      } else {
-        setQuickSearchResults([]);
-        setShowQuickSearch(false);
+  const loadRecentSearches = () => {
+    try {
+      const saved = localStorage.getItem('recent_searches');
+      if (saved) {
+        setRecentSearches(JSON.parse(saved).slice(0, 5));
       }
-    }, 300);
+    } catch (error) {
+      console.error('Error loading recent searches:', error);
+    }
+  };
 
-    return () => clearTimeout(debounceTimer);
+  // Enhanced search functionality with debouncing
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    if (quickSearchQuery.trim().length > 1) {
+      setIsSearching(true);
+      searchDebounceRef.current = setTimeout(() => {
+        performQuickSearch(quickSearchQuery);
+      }, 300);
+    } else {
+      setQuickSearchResults({ startups: [], jobs: [] });
+      setIsSearching(false);
+    }
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
   }, [quickSearchQuery]);
+
+  // Show search dropdown when focused
+  useEffect(() => {
+    if (searchFocused) {
+      setShowQuickSearch(true);
+    }
+  }, [searchFocused]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -109,6 +150,7 @@ const Navbar = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) && 
           searchRef.current && !searchRef.current.contains(event.target)) {
         setShowQuickSearch(false);
+        setSearchFocused(false);
       }
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setIsProfileDropdownOpen(false);
@@ -122,16 +164,13 @@ const Navbar = () => {
   // Lock/unlock body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
-      // Disable body scroll
       document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = '0px'; // Prevent layout shift
+      document.body.style.paddingRight = '0px';
     } else {
-      // Re-enable body scroll
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
     }
 
-    // Cleanup on unmount
     return () => {
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
@@ -140,47 +179,83 @@ const Navbar = () => {
 
   const loadUserStats = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/auth/stats/');
-      setUserStats(response.data);
+      // Mock user stats - replace with actual API call
+      setUserStats({
+        totals: {
+          bookmarks: 15,
+          ratings: 23,
+          applications: 8
+        }
+      });
     } catch (error) {
       console.error('Error loading user stats:', error);
     }
   };
 
   const performQuickSearch = async (query) => {
-    setIsSearching(true);
     try {
-      const [startupsRes, jobsRes] = await Promise.all([
-        axios.get(`http://localhost:8000/api/startups/?search=${query}&page_size=3`),
-        axios.get(`http://localhost:8000/api/jobs/?search=${query}&page_size=3`)
-      ]);
+      // Mock search results - replace with actual API call
+      const mockStartups = [
+        { id: 1, name: 'TechFlow AI', industry_name: 'AI/ML', logo: '🚀' },
+        { id: 2, name: 'DataTech Pro', industry_name: 'Analytics', logo: '📊' },
+        { id: 3, name: 'CloudTech Solutions', industry_name: 'Cloud', logo: '☁️' }
+      ].filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
+
+      const mockJobs = [
+        { id: 1, title: 'Senior Frontend Developer', startup_name: 'TechFlow AI' },
+        { id: 2, title: 'Product Manager', startup_name: 'DataTech Pro' },
+        { id: 3, title: 'DevOps Engineer', startup_name: 'CloudTech Solutions' }
+      ].filter(j => j.title.toLowerCase().includes(query.toLowerCase()));
 
       setQuickSearchResults({
-        startups: startupsRes.data.results || [],
-        jobs: jobsRes.data.results || []
+        startups: mockStartups.slice(0, 3),
+        jobs: mockJobs.slice(0, 3)
       });
-      setShowQuickSearch(true);
+      setIsSearching(false);
     } catch (error) {
       console.error('Quick search error:', error);
       setQuickSearchResults({ startups: [], jobs: [] });
-    } finally {
       setIsSearching(false);
     }
+  };
+
+  const saveRecentSearch = (query) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    
+    const updated = [trimmed, ...recentSearches.filter(s => s !== trimmed)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recent_searches', JSON.stringify(updated));
   };
 
   const handleQuickSearchSubmit = (e) => {
     e.preventDefault();
     if (quickSearchQuery.trim()) {
+      saveRecentSearch(quickSearchQuery);
       navigate('/startups', { state: { searchTerm: quickSearchQuery } });
       setQuickSearchQuery('');
       setShowQuickSearch(false);
+      setSearchFocused(false);
     }
   };
 
   const handleQuickSearchClear = () => {
     setQuickSearchQuery('');
-    setQuickSearchResults([]);
+    setQuickSearchResults({ startups: [], jobs: [] });
+  };
+
+  const handleSearchItemClick = (type, item) => {
+    if (type === 'startup') {
+      navigate(`/startups/${item.id}`);
+    } else if (type === 'job') {
+      navigate(`/jobs/${item.id}`);
+    } else if (type === 'search') {
+      saveRecentSearch(item);
+      navigate('/startups', { state: { searchTerm: item } });
+    }
+    setQuickSearchQuery('');
     setShowQuickSearch(false);
+    setSearchFocused(false);
   };
 
   const handleLogout = () => {
@@ -225,7 +300,7 @@ const Navbar = () => {
           {/* Logo and Brand */}
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-3 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                 <LinkIcon className="w-4 h-4 text-white" />
               </div>
               <div className="hidden sm:block">
@@ -260,7 +335,7 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
+          {/* Enhanced Search Bar */}
           <div className="hidden md:flex flex-1 max-w-lg mx-8" ref={searchRef}>
             <div className="relative w-full">
               <form onSubmit={handleQuickSearchSubmit} className="w-full">
@@ -276,6 +351,7 @@ const Navbar = () => {
                     type="text"
                     value={quickSearchQuery}
                     onChange={(e) => setQuickSearchQuery(e.target.value)}
+                    onFocus={() => setSearchFocused(true)}
                     placeholder="Search startups, jobs..."
                     className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white text-sm transition-all duration-200"
                   />
@@ -293,72 +369,118 @@ const Navbar = () => {
                 </div>
               </form>
 
-              {/* Quick Search Dropdown */}
-              {showQuickSearch && (quickSearchResults.startups.length > 0 || quickSearchResults.jobs.length > 0) && (
+              {/* Enhanced Quick Search Dropdown */}
+              {showQuickSearch && searchFocused && (
                 <div 
                   ref={dropdownRef}
-                  className="absolute z-50 mt-2 w-full bg-white shadow-xl max-h-80 rounded-xl py-2 text-base ring-1 ring-black ring-opacity-5 overflow-auto border border-gray-100"
+                  className="absolute z-50 mt-2 w-full bg-white shadow-xl max-h-96 rounded-xl py-2 text-base ring-1 ring-black ring-opacity-5 overflow-auto border border-gray-100"
                 >
-                  {quickSearchResults.startups.length > 0 && (
-                    <div>
-                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
-                        Startups
-                      </div>
-                      {quickSearchResults.startups.map((startup) => (
-                        <Link
-                          key={startup.id}
-                          to={`/startups/${startup.id}`}
-                          className="cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors"
-                          onClick={() => setShowQuickSearch(false)}
-                        >
-                          <div className="flex items-center">
-                            <span className="text-lg mr-3">{startup.logo}</span>
-                            <div>
-                              <span className="block font-medium">{startup.name}</span>
-                              <span className="block text-sm text-gray-500">{startup.industry_name}</span>
-                            </div>
+                  {/* Search Results */}
+                  {quickSearchQuery.length > 1 && (quickSearchResults.startups.length > 0 || quickSearchResults.jobs.length > 0) ? (
+                    <>
+                      {quickSearchResults.startups.length > 0 && (
+                        <div>
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
+                            Startups
                           </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  {quickSearchResults.jobs.length > 0 && (
-                    <div>
-                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
-                        Jobs
-                      </div>
-                      {quickSearchResults.jobs.map((job) => (
-                        <div
-                          key={job.id}
-                          className="cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors"
-                          onClick={() => {
-                            navigate(`/jobs/${job.id}`);
-                            setShowQuickSearch(false);
-                          }}
-                        >
-                          <div className="flex items-center">
-                            <Briefcase className="w-4 h-4 text-gray-400 mr-3" />
-                            <div>
-                              <span className="block font-medium">{job.title}</span>
-                              <span className="block text-sm text-gray-500">{job.startup_name}</span>
-                            </div>
-                          </div>
+                          {quickSearchResults.startups.map((startup) => (
+                            <button
+                              key={startup.id}
+                              onClick={() => handleSearchItemClick('startup', startup)}
+                              className="w-full cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors flex items-center"
+                            >
+                              <span className="text-lg mr-3">{startup.logo}</span>
+                              <div className="text-left">
+                                <span className="block font-medium">{startup.name}</span>
+                                <span className="block text-sm text-gray-500">{startup.industry_name}</span>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      ))}
+                      )}
+
+                      {quickSearchResults.jobs.length > 0 && (
+                        <div>
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
+                            Jobs
+                          </div>
+                          {quickSearchResults.jobs.map((job) => (
+                            <button
+                              key={job.id}
+                              onClick={() => handleSearchItemClick('job', job)}
+                              className="w-full cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors flex items-center"
+                            >
+                              <Briefcase className="w-4 h-4 text-gray-400 mr-3" />
+                              <div className="text-left">
+                                <span className="block font-medium">{job.title}</span>
+                                <span className="block text-sm text-gray-500">{job.startup_name}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : quickSearchQuery.length === 0 ? (
+                    <>
+                      {/* Recent Searches */}
+                      {recentSearches.length > 0 && (
+                        <div>
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50 flex items-center justify-between">
+                            <span>Recent Searches</span>
+                            <button
+                              onClick={() => {
+                                setRecentSearches([]);
+                                localStorage.removeItem('recent_searches');
+                              }}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium normal-case"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                          {recentSearches.map((search, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSearchItemClick('search', search)}
+                              className="w-full cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors flex items-center"
+                            >
+                              <Clock className="w-4 h-4 text-gray-400 mr-3" />
+                              <span className="text-left">{search}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Trending Searches */}
+                      <div>
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-50">
+                          Trending Searches
+                        </div>
+                        {trendingSearches.map((search, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSearchItemClick('search', search)}
+                            className="w-full cursor-pointer select-none relative py-3 pl-4 pr-9 hover:bg-gray-50 text-gray-900 transition-colors flex items-center"
+                          >
+                            <TrendingUp className="w-4 h-4 text-gray-400 mr-3" />
+                            <span className="text-left">{search}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+
+                  {/* Search All Option */}
+                  {quickSearchQuery.length > 1 && (
+                    <div className="border-t border-gray-50 px-4 py-2">
+                      <button
+                        onClick={handleQuickSearchSubmit}
+                        className="flex items-center w-full text-left py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        <Search className="w-4 h-4 mr-2" />
+                        Search all for "{quickSearchQuery}"
+                      </button>
                     </div>
                   )}
-
-                  {/* Search All */}
-                  <div className="border-t border-gray-50 px-4 py-2">
-                    <button
-                      onClick={handleQuickSearchSubmit}
-                      className="flex items-center w-full text-left py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Search all for "{quickSearchQuery}"
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
@@ -369,7 +491,7 @@ const Navbar = () => {
             {/* Notification Bell */}
             <NotificationBell />
 
-            {/* User Profile Dropdown */}
+            {/* Enhanced User Profile Dropdown */}
             <div className="relative" ref={profileDropdownRef}>
               <button
                 onClick={toggleProfileDropdown}
@@ -398,7 +520,7 @@ const Navbar = () => {
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
 
-              {/* Profile Dropdown Menu */}
+              {/* Enhanced Profile Dropdown Menu */}
               {isProfileDropdownOpen && (
                 <>
                   <div 
@@ -407,7 +529,7 @@ const Navbar = () => {
                   />
                   <div className="fixed right-4 top-16 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 max-h-[calc(100vh-80px)] overflow-y-auto sm:absolute sm:right-0 sm:top-auto sm:mt-2">
                     {/* Profile Header */}
-                    <div className="px-4 py-3 border-b border-gray-50 bg-white rounded-t-2xl">
+                    <div className="px-4 py-3 border-b border-gray-50 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                           <span className="text-white font-medium">
@@ -439,17 +561,17 @@ const Navbar = () => {
                     {userStats && (
                       <div className="px-4 py-3 border-b border-gray-50">
                         <div className="grid grid-cols-3 gap-4 text-center">
-                          <div>
+                          <div className="p-2 bg-gray-50 rounded-lg">
                             <div className="text-lg font-semibold text-gray-900">{userStats.totals?.bookmarks || 0}</div>
                             <div className="text-xs text-gray-500">Bookmarks</div>
                           </div>
-                          <div>
+                          <div className="p-2 bg-gray-50 rounded-lg">
                             <div className="text-lg font-semibold text-gray-900">{userStats.totals?.ratings || 0}</div>
                             <div className="text-xs text-gray-500">Ratings</div>
                           </div>
-                          <div>
+                          <div className="p-2 bg-gray-50 rounded-lg">
                             <div className="text-lg font-semibold text-gray-900">{userStats.totals?.applications || 0}</div>
-                            <div className="text-xs text-gray-500">Applications</div>
+                            <div className="text-xs text-gray-500">Applied</div>
                           </div>
                         </div>
                       </div>
@@ -488,7 +610,7 @@ const Navbar = () => {
                             )}
                             {item.path === '/my-claims' && (
                               <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
-                                Claims
+                                New
                               </span>
                             )}
                           </Link>
@@ -504,9 +626,9 @@ const Navbar = () => {
                             navigate('/settings');
                             setIsProfileDropdownOpen(false);
                           }}
-                          className="w-full flex items-center justify-center px-3 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl hover:from-amber-500 hover:to-orange-600 transition-colors font-medium"
+                          className="w-full flex items-center justify-center px-3 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl hover:from-amber-500 hover:to-orange-600 transition-colors font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          <Award className="w-4 h-4 mr-2" />
+                          <Rocket className="w-4 h-4 mr-2" />
                           Upgrade to Premium
                         </button>
                       </div>
@@ -591,7 +713,7 @@ const Navbar = () => {
 
             {/* Mobile Profile Section */}
             <div className="mt-6 pt-6 border-t border-gray-100 px-4">
-              <div className="flex items-center space-x-3 mb-4">
+              <div className="flex items-center space-x-3 mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                   <span className="text-white font-medium">
                     {getUserInitials()}
@@ -610,7 +732,6 @@ const Navbar = () => {
               </div>
 
               <div className="space-y-1">
-                {/* Show ALL menu items in mobile, not just slice(0, 6) */}
                 {getMenuItems().map((item) => {
                   const IconComponent = item.icon;
                   return (
@@ -641,7 +762,7 @@ const Navbar = () => {
                       )}
                       {item.path === '/my-claims' && (
                         <span className="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
-                          Claims
+                          New
                         </span>
                       )}
                     </Link>
