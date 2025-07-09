@@ -1,4 +1,4 @@
-// src/components/StartupEditForm.js - Enhanced with all upload form features
+// src/components/StartupEditForm.js - Enhanced with fixed progress bar, mandatory cover image, and full mobile responsiveness
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -50,6 +50,50 @@ const StartupEditForm = () => {
     }
   }, [authContext]);
 
+  // Calculate form completion percentage for progress bar
+  const calculateProgress = () => {
+    const requiredFields = [
+      'name',
+      'description', 
+      'industry',
+      'location',
+      'employee_count',
+      'founded_year'
+    ];
+    
+    const optionalButImportantFields = [
+      'website',
+      'business_model'
+    ];
+    
+    // Check required fields (70% weight)
+    const requiredCompleted = requiredFields.filter(field => {
+      if (field === 'description') {
+        return formData[field] && formData[field].length >= 50;
+      }
+      return formData[field] && formData[field].toString().trim();
+    }).length;
+    
+    // Check founders (10% weight)
+    const foundersCompleted = founders.filter(f => f.name?.trim()).length > 0 ? 1 : 0;
+    
+    // Check cover image (10% weight) - MANDATORY
+    const coverImageCompleted = (coverImageFile || formData.cover_image_url?.trim()) ? 1 : 0;
+    
+    // Check optional fields (10% weight)
+    const optionalCompleted = optionalButImportantFields.filter(field => 
+      formData[field] && formData[field].toString().trim()
+    ).length;
+    
+    // Calculate weighted percentage
+    const requiredPercentage = (requiredCompleted / requiredFields.length) * 70;
+    const foundersPercentage = foundersCompleted * 10;
+    const coverImagePercentage = coverImageCompleted * 10;
+    const optionalPercentage = (optionalCompleted / optionalButImportantFields.length) * 10;
+    
+    return Math.round(requiredPercentage + foundersPercentage + coverImagePercentage + optionalPercentage);
+  };
+
   const fetchStartupData = async () => {
     try {
       setLoading(true);
@@ -93,7 +137,7 @@ const StartupEditForm = () => {
 
       // Initialize tags
       if (startupData.tags && startupData.tags.length > 0) {
-        setTags([...startupData.tags, '']);
+        setTags([...startupData.tags.map(tag => tag.tag || tag), '']);
       }
 
       // Initialize social media
@@ -106,8 +150,8 @@ const StartupEditForm = () => {
       }
 
       // Set cover image preview if exists
-      if (startupData.cover_image_url) {
-        setCoverImagePreview(startupData.cover_image_url);
+      if (startupData.cover_image_url || startupData.cover_image_display_url) {
+        setCoverImagePreview(startupData.cover_image_display_url || startupData.cover_image_url);
       }
       
       console.log('Startup data loaded for editing:', startupData);
@@ -232,6 +276,32 @@ const StartupEditForm = () => {
     }
   };
 
+  const handleCoverImageUrlChange = (e) => {
+    const url = e.target.value;
+    setFormData(prev => ({ ...prev, cover_image_url: url }));
+    
+    // If user enters a URL, show it as preview and clear file upload
+    if (url && url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+      setCoverImagePreview(url);
+      setCoverImageFile(null);
+      // Reset file input
+      const fileInput = document.getElementById('cover-image-input');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } else if (!url) {
+      // If URL is cleared and no file, remove preview
+      if (!coverImageFile) {
+        setCoverImagePreview(null);
+      }
+    }
+
+    // Clear errors when user starts typing
+    if (errors.cover_image) {
+      setErrors(prev => ({ ...prev, cover_image: null }));
+    }
+  };
+
   const handleSocialMediaChange = (platform, value) => {
     setSocialMedia(prev => ({ ...prev, [platform]: value }));
   };
@@ -293,6 +363,11 @@ const StartupEditForm = () => {
       newErrors.founded_year = 'Founded year is required';
     }
 
+    // MANDATORY: Cover image validation
+    if (!coverImageFile && !formData.cover_image_url?.trim()) {
+      newErrors.cover_image = 'Cover image is required. Please upload an image or provide a URL.';
+    }
+
     // Length validations
     if (formData.description && formData.description.length < 50) {
       newErrors.description = 'Description must be at least 50 characters long';
@@ -311,6 +386,16 @@ const StartupEditForm = () => {
       newErrors.founded_year = `Founded year must be between 1800 and ${currentYear}`;
     }
 
+    // URL validation
+    if (formData.website && !isValidUrl(formData.website)) {
+      newErrors.website = 'Please enter a valid website URL';
+    }
+
+    // Cover image URL validation
+    if (formData.cover_image_url && !isValidUrl(formData.cover_image_url)) {
+      newErrors.cover_image = 'Please enter a valid image URL';
+    }
+
     // Founder validation
     const validFounders = founders.filter(f => f.name?.trim());
     if (validFounders.length === 0) {
@@ -319,6 +404,15 @@ const StartupEditForm = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const isValidUrl = (string) => {
+    try {
+      new URL(string.startsWith('http') ? string : `https://${string}`);
+      return true;
+    } catch (_) {
+      return false;
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -448,6 +542,9 @@ const StartupEditForm = () => {
     navigate(`/startups/${id}`);
   };
 
+  // Get current progress
+  const progressPercentage = calculateProgress();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
@@ -462,13 +559,13 @@ const StartupEditForm = () => {
 
   if (!startup) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto p-6 sm:p-8">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-red-600 text-2xl">⚠️</span>
           </div>
           <h3 className="text-xl font-semibold text-slate-900 mb-2">Startup not found</h3>
-          <p className="text-slate-600 mb-6">The startup you're trying to edit doesn't exist or you don't have permission to edit it.</p>
+          <p className="text-slate-600 mb-6 text-sm sm:text-base">The startup you're trying to edit doesn't exist or you don't have permission to edit it.</p>
           <button 
             onClick={() => navigate('/startups')}
             className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -483,15 +580,15 @@ const StartupEditForm = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
             {isAdmin ? 'Startup Updated Successfully!' : 'Edit Request Submitted!'}
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-6 text-sm sm:text-base">
             {isAdmin 
               ? 'Your changes have been applied to the startup immediately.'
               : 'Your edit request has been submitted for review. You\'ll be notified once it\'s approved.'
@@ -505,16 +602,16 @@ const StartupEditForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Building className="w-8 h-8 mr-3 text-blue-600" />
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center mb-2">
+                <Building className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-blue-600" />
                 Edit {startup.name}
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-600 text-sm sm:text-base">
                 {isAdmin 
                   ? 'As an admin, your changes will be applied immediately.'
                   : 'Your edit request will be reviewed by our team before being published.'
@@ -524,11 +621,29 @@ const StartupEditForm = () => {
             
             <button
               onClick={handleCancel}
-              className="flex items-center px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-center px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
               <X className="w-4 h-4 mr-2" />
               Cancel
             </button>
+          </div>
+
+          {/* Fixed Progress Indicator */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Form Completion</span>
+              <span className="text-sm font-medium text-blue-600">{progressPercentage}%</span>
+            </div>
+            <div className="bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+              <span>Started</span>
+              <span>Complete</span>
+            </div>
           </div>
         </div>
 
@@ -536,22 +651,22 @@ const StartupEditForm = () => {
         {errors.general && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-              <span className="text-red-700">{errors.general}</span>
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+              <span className="text-red-700 text-sm sm:text-base">{errors.general}</span>
             </div>
           </div>
         )}
 
         {/* Edit Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Building className="w-5 h-5 mr-2 text-blue-600" />
               Basic Information
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Company Name */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -562,7 +677,7 @@ const StartupEditForm = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.name ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Enter your company name"
@@ -570,8 +685,8 @@ const StartupEditForm = () => {
                   required
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.name}
                   </p>
                 )}
@@ -583,7 +698,7 @@ const StartupEditForm = () => {
                   Logo Emoji
                 </label>
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg flex items-center justify-center text-xl sm:text-2xl">
                     {formData.logo}
                   </div>
                   <input
@@ -591,7 +706,7 @@ const StartupEditForm = () => {
                     name="logo"
                     value={formData.logo}
                     onChange={handleInputChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     placeholder="🚀"
                     maxLength={10}
                   />
@@ -607,7 +722,7 @@ const StartupEditForm = () => {
                   name="industry"
                   value={formData.industry}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.industry ? 'border-red-300' : 'border-gray-300'
                   }`}
                   required
@@ -623,8 +738,8 @@ const StartupEditForm = () => {
                   ))}
                 </select>
                 {errors.industry && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.industry}
                   </p>
                 )}
@@ -640,15 +755,15 @@ const StartupEditForm = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.location ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="e.g., San Francisco, CA"
                   required
                 />
                 {errors.location && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.location}
                   </p>
                 )}
@@ -664,30 +779,30 @@ const StartupEditForm = () => {
                   name="website"
                   value={formData.website}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.website ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="https://your-startup.com"
                 />
                 {errors.website && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.website}
                   </p>
                 )}
               </div>
 
-              {/* Cover Image Upload & URL */}
+              {/* Cover Image Upload & URL - MANDATORY */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <ImageIcon className="w-4 h-4 inline mr-1" />
-                  Cover Image
+                  Cover Image *
                 </label>
                 
                 {!coverImagePreview ? (
                   <div>
                     {/* File Upload */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors mb-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-blue-400 transition-colors mb-4">
                       <input
                         type="file"
                         id="cover-image-input"
@@ -699,11 +814,11 @@ const StartupEditForm = () => {
                         htmlFor="cover-image-input" 
                         className="cursor-pointer flex flex-col items-center"
                       >
-                        <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
-                        <p className="text-gray-600 mb-2">
+                        <ImageIcon className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400 mb-2 sm:mb-4" />
+                        <p className="text-gray-600 mb-2 text-sm sm:text-base text-center">
                           Click to upload a cover image or drag and drop
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-500 text-center">
                           PNG, JPG, GIF up to 5MB. Recommended size: 1200x400px
                         </p>
                       </label>
@@ -721,15 +836,8 @@ const StartupEditForm = () => {
                       type="url"
                       name="cover_image_url"
                       value={formData.cover_image_url}
-                      onChange={(e) => {
-                        handleInputChange(e);
-                        // If user enters a URL, show it as preview
-                        if (e.target.value && e.target.value.match(/\.(jpeg|jpg|gif|png)$/i)) {
-                          setCoverImagePreview(e.target.value);
-                          setCoverImageFile(null); // Clear any uploaded file
-                        }
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={handleCoverImageUrlChange}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                       placeholder="Or enter a URL to your cover image (https://...)"
                     />
                   </div>
@@ -738,7 +846,7 @@ const StartupEditForm = () => {
                     <img
                       src={coverImagePreview}
                       alt="Cover preview"
-                      className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                      className="w-full h-32 sm:h-48 object-cover rounded-lg border border-gray-300"
                       onError={() => {
                         // If image fails to load, remove preview and show error
                         setCoverImagePreview(null);
@@ -750,32 +858,32 @@ const StartupEditForm = () => {
                     <button
                       type="button"
                       onClick={removeCoverImage}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 sm:p-2 hover:bg-red-600 transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                     {coverImageFile && (
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                        {coverImageFile.name}
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                        📁 {coverImageFile.name}
                       </div>
                     )}
                     {!coverImageFile && formData.cover_image_url && (
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                        URL Image
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                        🔗 URL Image
                       </div>
                     )}
                   </div>
                 )}
                 
                 {errors.cover_image && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.cover_image}
                   </p>
                 )}
                 
-                <p className="mt-1 text-sm text-gray-500">
-                  This will be displayed as a banner on your startup page. Upload a file or provide an image URL.
+                <p className="mt-1 text-xs sm:text-sm text-gray-500">
+                  This will be displayed as a banner on your startup page. Upload a file or provide an image URL. <span className="text-red-600 font-medium">Required.</span>
                 </p>
               </div>
 
@@ -789,7 +897,7 @@ const StartupEditForm = () => {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows={6}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none ${
                     errors.description ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Describe your startup, what problem you solve, and what makes you unique..."
@@ -797,8 +905,8 @@ const StartupEditForm = () => {
                   required
                 />
                 {errors.description && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.description}
                   </p>
                 )}
@@ -807,13 +915,13 @@ const StartupEditForm = () => {
           </div>
 
           {/* Company Details */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
               Company Details
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Employee Count */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -825,7 +933,7 @@ const StartupEditForm = () => {
                   name="employee_count"
                   value={formData.employee_count}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.employee_count ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="e.g., 25"
@@ -834,8 +942,8 @@ const StartupEditForm = () => {
                   required
                 />
                 {errors.employee_count && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.employee_count}
                   </p>
                 )}
@@ -852,7 +960,7 @@ const StartupEditForm = () => {
                   name="founded_year"
                   value={formData.founded_year}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.founded_year ? 'border-red-300' : 'border-gray-300'
                   }`}
                   min="1800"
@@ -860,8 +968,8 @@ const StartupEditForm = () => {
                   required
                 />
                 {errors.founded_year && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.founded_year}
                   </p>
                 )}
@@ -878,7 +986,7 @@ const StartupEditForm = () => {
                   name="funding_amount"
                   value={formData.funding_amount}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., $2M Seed, $10M Series A"
                 />
               </div>
@@ -894,7 +1002,7 @@ const StartupEditForm = () => {
                   name="valuation"
                   value={formData.valuation}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., $50M"
                 />
               </div>
@@ -910,7 +1018,7 @@ const StartupEditForm = () => {
                   name="revenue"
                   value={formData.revenue}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., $1M ARR"
                 />
               </div>
@@ -926,7 +1034,7 @@ const StartupEditForm = () => {
                   name="user_count"
                   value={formData.user_count}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., 50K active users"
                 />
               </div>
@@ -942,7 +1050,7 @@ const StartupEditForm = () => {
                   name="growth_rate"
                   value={formData.growth_rate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., 20% MoM"
                 />
               </div>
@@ -956,7 +1064,7 @@ const StartupEditForm = () => {
                   name="business_model"
                   value={formData.business_model}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 >
                   <option value="">Select business model</option>
                   <option value="saas">SaaS</option>
@@ -979,7 +1087,7 @@ const StartupEditForm = () => {
                   name="target_market"
                   value={formData.target_market}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., Small businesses, Enterprise"
                 />
               </div>
@@ -987,13 +1095,13 @@ const StartupEditForm = () => {
           </div>
 
           {/* Contact & Social Media */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Globe className="w-5 h-5 mr-2 text-blue-600" />
               Contact & Social Media
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
               {/* Contact Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1005,7 +1113,7 @@ const StartupEditForm = () => {
                   name="contact_email"
                   value={formData.contact_email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="contact@yourcompany.com"
                 />
               </div>
@@ -1021,14 +1129,14 @@ const StartupEditForm = () => {
                   name="contact_phone"
                   value={formData.contact_phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
             </div>
 
             {/* Social Media Links */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Twitter className="w-4 h-4 inline mr-1 text-blue-500" />
@@ -1038,7 +1146,7 @@ const StartupEditForm = () => {
                   type="url"
                   value={socialMedia.twitter}
                   onChange={(e) => handleSocialMediaChange('twitter', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="https://twitter.com/yourcompany"
                 />
               </div>
@@ -1052,7 +1160,7 @@ const StartupEditForm = () => {
                   type="url"
                   value={socialMedia.linkedin}
                   onChange={(e) => handleSocialMediaChange('linkedin', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="https://linkedin.com/company/yourcompany"
                 />
               </div>
@@ -1066,7 +1174,7 @@ const StartupEditForm = () => {
                   type="url"
                   value={socialMedia.github}
                   onChange={(e) => handleSocialMediaChange('github', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="https://github.com/yourcompany"
                 />
               </div>
@@ -1074,9 +1182,9 @@ const StartupEditForm = () => {
           </div>
 
           {/* Founders & Team */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
                 <Users className="w-5 h-5 mr-2 text-blue-600" />
                 Founders & Team
               </h2>
@@ -1084,7 +1192,7 @@ const StartupEditForm = () => {
                 type="button"
                 onClick={addFounder}
                 disabled={founders.length >= 5}
-                className="flex items-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Founder
@@ -1092,20 +1200,20 @@ const StartupEditForm = () => {
             </div>
 
             {errors.founders && (
-              <p className="mb-4 text-sm text-red-600 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
+              <p className="mb-4 text-xs sm:text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                 {errors.founders}
               </p>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {founders.map((founder, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-6 relative">
+                <div key={index} className="bg-gray-50 rounded-lg p-4 sm:p-6 relative">
                   {founders.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeFounder(index)}
-                      className="absolute top-4 right-4 text-gray-400 hover:text-red-600 transition-colors"
+                      className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-red-600 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1120,7 +1228,7 @@ const StartupEditForm = () => {
                         type="text"
                         value={founder.name}
                         onChange={(e) => handleFounderChange(index, 'name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                         placeholder="Full name"
                       />
                     </div>
@@ -1133,7 +1241,7 @@ const StartupEditForm = () => {
                         type="text"
                         value={founder.title}
                         onChange={(e) => handleFounderChange(index, 'title', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                         placeholder="e.g., CEO, CTO"
                       />
                     </div>
@@ -1146,7 +1254,7 @@ const StartupEditForm = () => {
                         type="url"
                         value={founder.linkedin}
                         onChange={(e) => handleFounderChange(index, 'linkedin', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                         placeholder="https://linkedin.com/in/..."
                       />
                     </div>
@@ -1161,7 +1269,7 @@ const StartupEditForm = () => {
                         value={founder.bio}
                         onChange={(e) => handleFounderChange(index, 'bio', e.target.value)}
                         rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none"
                         placeholder="Brief bio and background..."
                         maxLength={500}
                       />
@@ -1173,9 +1281,9 @@ const StartupEditForm = () => {
           </div>
 
           {/* Tags & Keywords */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
                 <Tag className="w-5 h-5 mr-2 text-blue-600" />
                 Tags & Keywords
               </h2>
@@ -1183,14 +1291,14 @@ const StartupEditForm = () => {
                 type="button"
                 onClick={addTag}
                 disabled={tags.length >= 10 || tags[tags.length - 1].trim() === ''}
-                className="flex items-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Tag
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-xs sm:text-sm text-gray-600 mb-4">
               Add relevant tags to help people discover your startup (e.g., technologies, market focus, etc.)
             </p>
 
@@ -1201,7 +1309,7 @@ const StartupEditForm = () => {
                     type="text"
                     value={tag}
                     onChange={(e) => handleTagChange(index, e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     placeholder="e.g., React, AI, SaaS"
                     maxLength={30}
                   />
@@ -1209,7 +1317,7 @@ const StartupEditForm = () => {
                     <button
                       type="button"
                       onClick={() => removeTag(index)}
-                      className="text-gray-400 hover:text-red-600 transition-colors"
+                      className="text-gray-400 hover:text-red-600 transition-colors p-1"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1219,35 +1327,35 @@ const StartupEditForm = () => {
             </div>
             
             {errors.tags && (
-              <p className="mt-4 text-sm text-red-600 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
+              <p className="mt-4 text-xs sm:text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                 {errors.tags}
               </p>
             )}
           </div>
 
           {/* Additional Options */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Award className="w-5 h-5 mr-2 text-blue-600" />
               Additional Options
             </h2>
 
             <div className="space-y-4">
-              <label className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors">
+              <label className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors">
                 <input
                   type="checkbox"
                   name="is_featured"
                   checked={formData.is_featured}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500"
+                  className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500 mt-0.5 flex-shrink-0"
                 />
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    <span className="font-medium text-gray-900">Request Featured Status</span>
+                    <Star className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">Request Featured Status</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
                     Request to have your startup highlighted as featured (subject to review)
                   </p>
                 </div>
@@ -1256,20 +1364,20 @@ const StartupEditForm = () => {
           </div>
 
           {/* Form Actions */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-              <div className="text-sm text-gray-500">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+              <div className="text-xs sm:text-sm text-gray-500">
                 {isAdmin 
                   ? '⚡ Your changes will be applied immediately as you are an admin.'
                   : '📝 Your edit request will be reviewed by our team before being published.'
                 }
               </div>
 
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
@@ -1277,7 +1385,7 @@ const StartupEditForm = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center justify-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
                 >
                   {submitting ? (
                     <>
@@ -1292,6 +1400,17 @@ const StartupEditForm = () => {
                   )}
                 </button>
               </div>
+            </div>
+
+            <div className="mt-6 text-xs sm:text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
+              <p className="mb-2 font-medium">📝 Before submitting:</p>
+              <ul className="space-y-1 text-xs">
+                <li>• Ensure all required fields are completed</li>
+                <li>• <span className="font-medium text-red-600">Cover image is mandatory</span> - upload or provide URL</li>
+                <li>• Double-check your company information for accuracy</li>
+                <li>• {isAdmin ? 'Changes will be applied immediately' : 'Your changes will be reviewed before being published'}</li>
+                <li>• You'll receive a notification once your changes are processed</li>
+              </ul>
             </div>
           </div>
         </form>
