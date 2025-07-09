@@ -1,4 +1,4 @@
-// src/components/StartupUploadForm.js - Complete Full Version with Working Image Upload
+// src/components/StartupUploadForm.js - Complete Full Version with Fixed Progress Bar and Mandatory Cover Image
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -43,7 +43,7 @@ const StartupUploadForm = () => {
     contact_phone: '',
     business_model: '',
     target_market: '',
-    cover_image_url: '' // Add this to store the uploaded image URL
+    cover_image_url: ''
   });
 
   // Dynamic arrays
@@ -120,6 +120,50 @@ const StartupUploadForm = () => {
     }
   };
 
+  // Calculate form completion percentage for progress bar
+  const calculateProgress = () => {
+    const requiredFields = [
+      'name',
+      'description', 
+      'industry',
+      'location',
+      'employee_count',
+      'founded_year'
+    ];
+    
+    const optionalButImportantFields = [
+      'website',
+      'business_model'
+    ];
+    
+    // Check required fields (70% weight)
+    const requiredCompleted = requiredFields.filter(field => {
+      if (field === 'description') {
+        return formData[field] && formData[field].length >= 50;
+      }
+      return formData[field] && formData[field].toString().trim();
+    }).length;
+    
+    // Check founders (10% weight)
+    const foundersCompleted = founders.filter(f => f.name?.trim()).length > 0 ? 1 : 0;
+    
+    // Check cover image (10% weight) - MANDATORY
+    const coverImageCompleted = (coverImageFile || formData.cover_image_url?.trim()) ? 1 : 0;
+    
+    // Check optional fields (10% weight)
+    const optionalCompleted = optionalButImportantFields.filter(field => 
+      formData[field] && formData[field].toString().trim()
+    ).length;
+    
+    // Calculate weighted percentage
+    const requiredPercentage = (requiredCompleted / requiredFields.length) * 70;
+    const foundersPercentage = foundersCompleted * 10;
+    const coverImagePercentage = coverImageCompleted * 10;
+    const optionalPercentage = (optionalCompleted / optionalButImportantFields.length) * 10;
+    
+    return Math.round(requiredPercentage + foundersPercentage + coverImagePercentage + optionalPercentage);
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -158,10 +202,11 @@ const StartupUploadForm = () => {
     };
     reader.readAsDataURL(file);
     
-    // Clear any previous errors
+    // Clear any previous errors and URL field
     if (errors.cover_image) {
       setErrors(prev => ({ ...prev, cover_image: null }));
     }
+    setFormData(prev => ({ ...prev, cover_image_url: '' }));
 
     // Upload the image immediately for better UX
     await uploadCoverImage(file);
@@ -230,6 +275,11 @@ const StartupUploadForm = () => {
       if (!coverImageFile) {
         setCoverImagePreview(null);
       }
+    }
+
+    // Clear errors when user starts typing
+    if (errors.cover_image) {
+      setErrors(prev => ({ ...prev, cover_image: null }));
     }
   };
 
@@ -303,6 +353,12 @@ const StartupUploadForm = () => {
       console.log('❌ Missing founded year');
     }
 
+    // MANDATORY: Cover image validation
+    if (!coverImageFile && !formData.cover_image_url?.trim()) {
+      newErrors.cover_image = 'Cover image is required. Please upload an image or provide a URL.';
+      console.log('❌ Missing cover image');
+    }
+
     // Length validations
     if (formData.name && formData.name.length > 100) {
       newErrors.name = 'Company name too long (max 100 characters)';
@@ -318,6 +374,11 @@ const StartupUploadForm = () => {
     // URL validation
     if (formData.website && !isValidUrl(formData.website)) {
       newErrors.website = 'Please enter a valid website URL';
+    }
+    
+    // Cover image URL validation
+    if (formData.cover_image_url && !isValidUrl(formData.cover_image_url)) {
+      newErrors.cover_image = 'Please enter a valid image URL';
     }
     
     // Number validations
@@ -539,14 +600,17 @@ const StartupUploadForm = () => {
   // Check if draft exists
   const hasDraft = localStorage.getItem('startup_draft');
 
+  // Get current progress
+  const progressPercentage = calculateProgress();
+
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Startup Submitted Successfully!</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Startup Submitted Successfully!</h2>
           <p className="text-gray-600 mb-6">
             Your startup has been submitted for review. You'll be redirected to view your startup shortly.
           </p>
@@ -563,25 +627,25 @@ const StartupUploadForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Building className="w-8 h-8 mr-3 text-blue-600" />
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center mb-2">
+                <Building className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-blue-600" />
                 Submit Your Startup
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-600 text-sm sm:text-base">
                 Share your startup with the community and connect with potential customers, investors, and talent.
               </p>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {hasDraft && (
                 <button
                   onClick={loadDraft}
-                  className="px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors text-sm"
                 >
                   Load Draft
                 </button>
@@ -589,7 +653,7 @@ const StartupUploadForm = () => {
               
               <button
                 onClick={() => setPreviewMode(!previewMode)}
-                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center justify-center px-4 py-2 rounded-lg transition-colors text-sm ${
                   previewMode 
                     ? 'bg-gray-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -601,21 +665,22 @@ const StartupUploadForm = () => {
             </div>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="bg-gray-200 rounded-full h-2 mb-6">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ 
-                width: `${Math.min(100, (
-                  (formData.name ? 1 : 0) +
-                  (formData.description ? 1 : 0) +
-                  (formData.industry ? 1 : 0) +
-                  (formData.location ? 1 : 0) +
-                  (formData.employee_count ? 1 : 0) +
-                  (formData.founded_year ? 1 : 0)
-                ) / 6 * 100)}%` 
-              }}
-            />
+          {/* Fixed Progress Indicator */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Form Completion</span>
+              <span className="text-sm font-medium text-blue-600">{progressPercentage}%</span>
+            </div>
+            <div className="bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+              <span>Started</span>
+              <span>Complete</span>
+            </div>
           </div>
         </div>
 
@@ -623,8 +688,8 @@ const StartupUploadForm = () => {
         {errors.general && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-              <span className="text-red-700">{errors.general}</span>
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
+              <span className="text-red-700 text-sm sm:text-base">{errors.general}</span>
             </div>
           </div>
         )}
@@ -633,8 +698,8 @@ const StartupUploadForm = () => {
         {process.env.NODE_ENV === 'development' && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <details>
-              <summary className="text-yellow-800 font-medium cursor-pointer">🐛 Debug Info (Dev Only)</summary>
-              <div className="mt-2 text-sm text-yellow-700">
+              <summary className="text-yellow-800 font-medium cursor-pointer text-sm">🐛 Debug Info (Dev Only)</summary>
+              <div className="mt-2 text-xs text-yellow-700 space-y-1">
                 <p><strong>Auth Token:</strong> {localStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</p>
                 <p><strong>User:</strong> {user ? user.username || user.email || 'Unknown' : '❌ Not logged in'}</p>
                 <p><strong>Industries Loaded:</strong> {industries.length}</p>
@@ -643,13 +708,15 @@ const StartupUploadForm = () => {
                   URL: {formData.cover_image_url ? '✅' : '❌'}, 
                   Preview: {coverImagePreview ? '✅' : '❌'}
                 </p>
+                <p><strong>Progress:</strong> {progressPercentage}%</p>
                 <p><strong>Required Fields:</strong> 
                   Name: {formData.name ? '✅' : '❌'}, 
                   Desc: {formData.description?.length >= 50 ? '✅' : '❌'}, 
                   Industry: {formData.industry ? '✅' : '❌'}, 
                   Location: {formData.location ? '✅' : '❌'}, 
                   Employees: {formData.employee_count ? '✅' : '❌'}, 
-                  Year: {formData.founded_year ? '✅' : '❌'}
+                  Year: {formData.founded_year ? '✅' : '❌'},
+                  Cover: {(coverImageFile || formData.cover_image_url) ? '✅' : '❌'}
                 </p>
               </div>
             </details>
@@ -657,15 +724,15 @@ const StartupUploadForm = () => {
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Building className="w-5 h-5 mr-2 text-blue-600" />
               Basic Information
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Company Name */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -676,7 +743,7 @@ const StartupUploadForm = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.name ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Enter your company name"
@@ -684,8 +751,8 @@ const StartupUploadForm = () => {
                   required
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.name) ? errors.name.join(', ') : errors.name}
                   </p>
                 )}
@@ -697,7 +764,7 @@ const StartupUploadForm = () => {
                   Logo Emoji
                 </label>
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg flex items-center justify-center text-xl sm:text-2xl">
                     {formData.logo}
                   </div>
                   <input
@@ -705,7 +772,7 @@ const StartupUploadForm = () => {
                     name="logo"
                     value={formData.logo}
                     onChange={handleInputChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     placeholder="🚀"
                     maxLength={10}
                   />
@@ -721,7 +788,7 @@ const StartupUploadForm = () => {
                   name="industry"
                   value={formData.industry}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.industry ? 'border-red-300' : 'border-gray-300'
                   }`}
                   required
@@ -734,8 +801,8 @@ const StartupUploadForm = () => {
                   ))}
                 </select>
                 {errors.industry && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.industry) ? errors.industry.join(', ') : errors.industry}
                   </p>
                 )}
@@ -751,15 +818,15 @@ const StartupUploadForm = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.location ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="e.g., San Francisco, CA"
                   required
                 />
                 {errors.location && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.location) ? errors.location.join(', ') : errors.location}
                   </p>
                 )}
@@ -775,14 +842,14 @@ const StartupUploadForm = () => {
                   name="website"
                   value={formData.website}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.website ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="https://your-startup.com"
                 />
                 {errors.website && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.website) ? errors.website.join(', ') : errors.website}
                   </p>
                 )}
@@ -798,7 +865,7 @@ const StartupUploadForm = () => {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows={6}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none ${
                     errors.description ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Describe your startup, what problem you solve, and what makes you unique..."
@@ -806,24 +873,24 @@ const StartupUploadForm = () => {
                   required
                 />
                 {errors.description && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.description) ? errors.description.join(', ') : errors.description}
                   </p>
                 )}
               </div>
 
-              {/* Cover Image Upload & URL */}
+              {/* Cover Image Upload & URL - MANDATORY */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <ImageIcon className="w-4 h-4 inline mr-1" />
-                  Cover Image
+                  Cover Image *
                 </label>
                 
                 {!coverImagePreview ? (
                   <div>
                     {/* File Upload */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors mb-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-blue-400 transition-colors mb-4">
                       <input
                         type="file"
                         id="cover-image-input"
@@ -835,11 +902,11 @@ const StartupUploadForm = () => {
                         htmlFor="cover-image-input" 
                         className="cursor-pointer flex flex-col items-center"
                       >
-                        <ImageIcon className="w-12 h-12 text-gray-400 mb-4" />
-                        <p className="text-gray-600 mb-2">
+                        <ImageIcon className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400 mb-2 sm:mb-4" />
+                        <p className="text-gray-600 mb-2 text-sm sm:text-base text-center">
                           Click to upload a cover image or drag and drop
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs sm:text-sm text-gray-500 text-center">
                           PNG, JPG, GIF up to 5MB. Recommended size: 1200x400px
                         </p>
                       </label>
@@ -858,7 +925,7 @@ const StartupUploadForm = () => {
                       name="cover_image_url"
                       value={formData.cover_image_url}
                       onChange={handleCoverImageUrlChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                       placeholder="Or enter a URL to your cover image (https://...)"
                     />
                   </div>
@@ -867,7 +934,7 @@ const StartupUploadForm = () => {
                     <img
                       src={coverImagePreview}
                       alt="Cover preview"
-                      className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                      className="w-full h-32 sm:h-48 object-cover rounded-lg border border-gray-300"
                       onError={() => {
                         // If image fails to load, remove preview and show error
                         setCoverImagePreview(null);
@@ -879,17 +946,17 @@ const StartupUploadForm = () => {
                     <button
                       type="button"
                       onClick={removeCoverImage}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 sm:p-2 hover:bg-red-600 transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                     {coverImageFile && (
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
                         📁 {coverImageFile.name}
                       </div>
                     )}
                     {!coverImageFile && formData.cover_image_url && (
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
                         🔗 URL Image
                       </div>
                     )}
@@ -897,27 +964,27 @@ const StartupUploadForm = () => {
                 )}
                 
                 {errors.cover_image && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {errors.cover_image}
                   </p>
                 )}
                 
-                <p className="mt-1 text-sm text-gray-500">
-                  This will be displayed as a banner on your startup page. Upload a file or provide an image URL.
+                <p className="mt-1 text-xs sm:text-sm text-gray-500">
+                  This will be displayed as a banner on your startup page. Upload a file or provide an image URL. <span className="text-red-600 font-medium">Required.</span>
                 </p>
               </div>
             </div>
           </div>
 
           {/* Company Details */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
               Company Details
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Employee Count */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -929,7 +996,7 @@ const StartupUploadForm = () => {
                   name="employee_count"
                   value={formData.employee_count}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.employee_count ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="e.g., 25"
@@ -938,8 +1005,8 @@ const StartupUploadForm = () => {
                   required
                 />
                 {errors.employee_count && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.employee_count) ? errors.employee_count.join(', ') : errors.employee_count}
                   </p>
                 )}
@@ -956,7 +1023,7 @@ const StartupUploadForm = () => {
                   name="founded_year"
                   value={formData.founded_year}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                     errors.founded_year ? 'border-red-300' : 'border-gray-300'
                   }`}
                   min="1800"
@@ -964,8 +1031,8 @@ const StartupUploadForm = () => {
                   required
                 />
                 {errors.founded_year && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                     {Array.isArray(errors.founded_year) ? errors.founded_year.join(', ') : errors.founded_year}
                   </p>
                 )}
@@ -982,7 +1049,7 @@ const StartupUploadForm = () => {
                   name="funding_amount"
                   value={formData.funding_amount}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., $2M Seed, $10M Series A"
                 />
               </div>
@@ -998,7 +1065,7 @@ const StartupUploadForm = () => {
                   name="valuation"
                   value={formData.valuation}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., $50M"
                 />
               </div>
@@ -1014,7 +1081,7 @@ const StartupUploadForm = () => {
                   name="revenue"
                   value={formData.revenue}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., $1M ARR"
                 />
               </div>
@@ -1030,7 +1097,7 @@ const StartupUploadForm = () => {
                   name="user_count"
                   value={formData.user_count}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., 50K active users"
                 />
               </div>
@@ -1046,7 +1113,7 @@ const StartupUploadForm = () => {
                   name="growth_rate"
                   value={formData.growth_rate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., 20% MoM"
                 />
               </div>
@@ -1060,7 +1127,7 @@ const StartupUploadForm = () => {
                   name="business_model"
                   value={formData.business_model}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 >
                   <option value="">Select business model</option>
                   <option value="saas">SaaS</option>
@@ -1083,7 +1150,7 @@ const StartupUploadForm = () => {
                   name="target_market"
                   value={formData.target_market}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="e.g., Small businesses, Enterprise"
                 />
               </div>
@@ -1091,13 +1158,13 @@ const StartupUploadForm = () => {
           </div>
 
           {/* Contact & Social */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Globe className="w-5 h-5 mr-2 text-blue-600" />
               Contact & Social Media
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
               {/* Contact Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1109,7 +1176,7 @@ const StartupUploadForm = () => {
                   name="contact_email"
                   value={formData.contact_email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="contact@yourcompany.com"
                 />
               </div>
@@ -1125,14 +1192,14 @@ const StartupUploadForm = () => {
                   name="contact_phone"
                   value={formData.contact_phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
             </div>
 
             {/* Social Media Links */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Twitter className="w-4 h-4 inline mr-1 text-blue-500" />
@@ -1142,7 +1209,7 @@ const StartupUploadForm = () => {
                   type="url"
                   value={socialMedia.twitter}
                   onChange={(e) => handleSocialMediaChange('twitter', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="https://twitter.com/yourcompany"
                 />
               </div>
@@ -1156,7 +1223,7 @@ const StartupUploadForm = () => {
                   type="url"
                   value={socialMedia.linkedin}
                   onChange={(e) => handleSocialMediaChange('linkedin', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="https://linkedin.com/company/yourcompany"
                 />
               </div>
@@ -1170,7 +1237,7 @@ const StartupUploadForm = () => {
                   type="url"
                   value={socialMedia.github}
                   onChange={(e) => handleSocialMediaChange('github', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="https://github.com/yourcompany"
                 />
               </div>
@@ -1178,9 +1245,9 @@ const StartupUploadForm = () => {
           </div>
 
           {/* Founders */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
                 <Users className="w-5 h-5 mr-2 text-blue-600" />
                 Founders & Team
               </h2>
@@ -1188,7 +1255,7 @@ const StartupUploadForm = () => {
                 type="button"
                 onClick={addFounder}
                 disabled={founders.length >= 5}
-                className="flex items-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Founder
@@ -1196,20 +1263,20 @@ const StartupUploadForm = () => {
             </div>
 
             {errors.founders && (
-              <p className="mb-4 text-sm text-red-600 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
+              <p className="mb-4 text-xs sm:text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                 {Array.isArray(errors.founders) ? errors.founders.join(', ') : errors.founders}
               </p>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {founders.map((founder, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-6 relative">
+                <div key={index} className="bg-gray-50 rounded-lg p-4 sm:p-6 relative">
                   {founders.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeFounder(index)}
-                      className="absolute top-4 right-4 text-gray-400 hover:text-red-600 transition-colors"
+                      className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-red-600 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1224,7 +1291,7 @@ const StartupUploadForm = () => {
                         type="text"
                         value={founder.name}
                         onChange={(e) => handleFounderChange(index, 'name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                         placeholder="Full name"
                       />
                     </div>
@@ -1237,7 +1304,7 @@ const StartupUploadForm = () => {
                         type="text"
                         value={founder.title}
                         onChange={(e) => handleFounderChange(index, 'title', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                         placeholder="e.g., CEO, CTO"
                       />
                     </div>
@@ -1250,7 +1317,7 @@ const StartupUploadForm = () => {
                         type="url"
                         value={founder.linkedin}
                         onChange={(e) => handleFounderChange(index, 'linkedin', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                         placeholder="https://linkedin.com/in/..."
                       />
                     </div>
@@ -1265,7 +1332,7 @@ const StartupUploadForm = () => {
                         value={founder.bio}
                         onChange={(e) => handleFounderChange(index, 'bio', e.target.value)}
                         rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base resize-none"
                         placeholder="Brief bio and background..."
                         maxLength={500}
                       />
@@ -1277,9 +1344,9 @@ const StartupUploadForm = () => {
           </div>
 
           {/* Tags */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
                 <Tag className="w-5 h-5 mr-2 text-blue-600" />
                 Tags & Keywords
               </h2>
@@ -1287,14 +1354,14 @@ const StartupUploadForm = () => {
                 type="button"
                 onClick={addTag}
                 disabled={tags.length >= 10 || tags[tags.length - 1].trim() === ''}
-                className="flex items-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Tag
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-xs sm:text-sm text-gray-600 mb-4">
               Add relevant tags to help people discover your startup (e.g., technologies, market focus, etc.)
             </p>
 
@@ -1305,7 +1372,7 @@ const StartupUploadForm = () => {
                     type="text"
                     value={tag}
                     onChange={(e) => handleTagChange(index, e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                     placeholder="e.g., React, AI, SaaS"
                     maxLength={30}
                   />
@@ -1313,7 +1380,7 @@ const StartupUploadForm = () => {
                     <button
                       type="button"
                       onClick={() => removeTag(index)}
-                      className="text-gray-400 hover:text-red-600 transition-colors"
+                      className="text-gray-400 hover:text-red-600 transition-colors p-1"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1323,35 +1390,35 @@ const StartupUploadForm = () => {
             </div>
             
             {errors.tags && (
-              <p className="mt-4 text-sm text-red-600 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
+              <p className="mt-4 text-xs sm:text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                 {Array.isArray(errors.tags) ? errors.tags.join(', ') : errors.tags}
               </p>
             )}
           </div>
 
           {/* Featured Checkbox */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <Award className="w-5 h-5 mr-2 text-blue-600" />
               Additional Options
             </h2>
 
             <div className="space-y-4">
-              <label className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors">
+              <label className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors">
                 <input
                   type="checkbox"
                   name="is_featured"
                   checked={formData.is_featured}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500"
+                  className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500 mt-0.5 flex-shrink-0"
                 />
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    <span className="font-medium text-gray-900">Request Featured Status</span>
+                    <Star className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">Request Featured Status</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
                     Request to have your startup highlighted as featured (subject to review)
                   </p>
                 </div>
@@ -1360,13 +1427,13 @@ const StartupUploadForm = () => {
           </div>
 
           {/* Form Actions */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-8">
-            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-              <div className="flex items-center space-x-4">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 p-4 sm:p-8">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                 <button
                   type="button"
                   onClick={handleSaveDraft}
-                  className="flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm sm:text-base"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Save Draft
@@ -1375,7 +1442,7 @@ const StartupUploadForm = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/startups')}
-                  className="flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
@@ -1384,7 +1451,7 @@ const StartupUploadForm = () => {
               <button
                 type="submit"
                 disabled={loading || imageUploading}
-                className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center justify-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
               >
                 {loading ? (
                   <>
@@ -1400,10 +1467,11 @@ const StartupUploadForm = () => {
               </button>
             </div>
 
-            <div className="mt-6 text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
+            <div className="mt-6 text-xs sm:text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
               <p className="mb-2 font-medium">📝 Before submitting:</p>
               <ul className="space-y-1 text-xs">
                 <li>• Ensure all required fields are completed</li>
+                <li>• <span className="font-medium text-red-600">Cover image is mandatory</span> - upload or provide URL</li>
                 <li>• Double-check your company information for accuracy</li>
                 <li>• Your startup will be reviewed before being published</li>
                 <li>• You'll receive a notification once your startup is approved</li>
