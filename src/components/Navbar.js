@@ -1,4 +1,4 @@
-// src/components/Navbar.js - Startlinker Modern Minimalistic Design
+// src/components/Navbar.js - Fixed Responsive Navbar with Complete Menu Items
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -610,7 +610,8 @@ const Navbar = () => {
               </div>
 
               <div className="space-y-1">
-                {getMenuItems().slice(0, 6).map((item) => {
+                {/* Show ALL menu items in mobile, not just slice(0, 6) */}
+                {getMenuItems().map((item) => {
                   const IconComponent = item.icon;
                   return (
                     <Link
