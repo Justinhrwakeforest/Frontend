@@ -1,13 +1,13 @@
 // src/components/PostsFeed.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../config/axios'; // Import configured axios
 import { 
   MessageCircle, Heart, Bookmark, Share2, MoreVertical,
   TrendingUp, Clock, Filter, Plus, Hash, Image,
   Code, Link as LinkIcon, Send, X, ChevronDown,
   ThumbsUp, Smile, Lightbulb, PartyPopper, Handshake,
-  HelpCircle, AlertCircle, Pin, Lock, Flag
+  HelpCircle, AlertCircle, Pin, Lock, Flag, Calendar
 } from 'lucide-react';
 import { useNotifications } from './NotificationSystem';
 import { formatDistanceToNow } from 'date-fns';
@@ -119,6 +119,16 @@ const PostCard = ({ post, onUpdate }) => {
 
   const handleReaction = async (reactionType) => {
     try {
+      // Mock the reaction for now
+      setUserReaction(reactionType);
+      setIsLiked(true);
+      if (reactionType === 'like' && !userReaction) {
+        setLikeCount(prev => prev + 1);
+      }
+      setShowReactions(false);
+      success('Reaction added!');
+      
+      /* Uncomment when backend is ready
       const response = await axios.post(`/api/posts/${post.id}/react/`, {
         reaction_type: reactionType
       });
@@ -130,6 +140,7 @@ const PostCard = ({ post, onUpdate }) => {
       }
       setShowReactions(false);
       success('Reaction added!');
+      */
     } catch (err) {
       error('Failed to add reaction');
     }
@@ -544,9 +555,46 @@ const PostsFeed = () => {
       if (filters.type) params.append('type', filters.type);
       if (filters.topic) params.append('topic', filters.topic);
 
-      const response = await axios.get(`/api/posts/?${params}`);
-      setPosts(response.data.results || response.data);
-      setLoading(false);
+      // Temporarily use mock data instead of API call
+      const mockPosts = [
+        {
+          id: '1',
+          author: { id: 1, username: 'john_doe' },
+          author_name: 'John Doe',
+          title: 'Welcome to the Community!',
+          content_preview: 'This is the first post in our new community forum. Feel free to share your thoughts and connect with other startup enthusiasts!',
+          post_type: 'discussion',
+          topics: [
+            { id: 1, name: 'welcome', slug: 'welcome' },
+            { id: 2, name: 'community', slug: 'community' }
+          ],
+          is_anonymous: false,
+          is_pinned: true,
+          is_locked: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          view_count: 42,
+          like_count: 5,
+          comment_count: 3,
+          share_count: 1,
+          bookmark_count: 2,
+          is_liked: false,
+          is_bookmarked: false,
+          user_reaction: null,
+          first_image: null
+        }
+      ];
+
+      // Simulate API delay
+      setTimeout(() => {
+        setPosts(mockPosts);
+        setLoading(false);
+      }, 500);
+
+      // Uncomment this when backend is ready
+      // const response = await axios.get(`/api/posts/?${params}`);
+      // setPosts(response.data.results || response.data);
+      // setLoading(false);
     } catch (err) {
       error('Failed to load posts');
       setLoading(false);
@@ -555,8 +603,19 @@ const PostsFeed = () => {
 
   const fetchTopics = async () => {
     try {
-      const response = await axios.get('/api/topics/trending/');
-      setTopics(response.data);
+      // Temporarily use mock data
+      const mockTopics = [
+        { id: 1, name: 'startup', slug: 'startup', post_count: 15 },
+        { id: 2, name: 'funding', slug: 'funding', post_count: 12 },
+        { id: 3, name: 'hiring', slug: 'hiring', post_count: 8 },
+        { id: 4, name: 'technology', slug: 'technology', post_count: 20 }
+      ];
+      
+      setTopics(mockTopics);
+
+      // Uncomment when backend is ready
+      // const response = await axios.get('/api/topics/trending/');
+      // setTopics(response.data);
     } catch (err) {
       console.error('Failed to load topics');
     }
@@ -688,6 +747,39 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
 
     setSubmitting(true);
     try {
+      // For now, create a mock post until backend is ready
+      const mockPost = {
+        id: Date.now().toString(),
+        author: { id: 1, username: 'current_user' },
+        author_name: 'Current User',
+        title: formData.title,
+        content: formData.content,
+        content_preview: formData.content.substring(0, 200) + (formData.content.length > 200 ? '...' : ''),
+        post_type: formData.post_type,
+        topics: formData.topic_names.map((name, index) => ({
+          id: index + 1,
+          name: name,
+          slug: name.toLowerCase().replace(/\s+/g, '-')
+        })),
+        is_anonymous: formData.is_anonymous,
+        is_pinned: false,
+        is_locked: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        view_count: 0,
+        like_count: 0,
+        comment_count: 0,
+        share_count: 0,
+        bookmark_count: 0,
+        is_liked: false,
+        is_bookmarked: false,
+        user_reaction: null,
+        first_image: null
+      };
+
+      onPostCreated(mockPost);
+
+      /* Uncomment when backend is ready
       const data = new FormData();
       Object.keys(formData).forEach(key => {
         if (key === 'topic_names') {
@@ -704,6 +796,7 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
       });
 
       onPostCreated(response.data);
+      */
     } catch (err) {
       error('Failed to create post');
     } finally {
